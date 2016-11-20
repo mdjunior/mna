@@ -60,6 +60,7 @@ Os nos podem ser nomes
 
 #define EXCEEDED_MAX_ELEMENTS 1
 #define EXCEEDED_MAX_NOME 2
+#define EXCEEDED_MAX_NOS 3
 
 
 typedef struct elemento { /* Elemento do netlist */
@@ -85,7 +86,7 @@ char
 	nb[MAX_NOME],
 	nc[MAX_NOME],
 	nd[MAX_NOME],
-	lista[MAX_NOS+1][MAX_NOME+2], /*Tem que caber jx antes do nome */
+	lista[MAX_NOS+1][MAX_NOME+2], // Lista com o numero do no e o nome (Tem que caber jx antes do nome)
 	txt[MAX_LINHA+1],
 	*p;
 FILE *arquivo;
@@ -153,16 +154,22 @@ int numero(char *nome)
 
 	i=0;
 	achou=0;
-	while (!achou && i <= nv)
-		if (!(achou=!strcmp(nome,lista[i]))) i++;
-	if (!achou) {
-		if (nv==MAX_NOS) {
-			printf("O programa so aceita ate %d nos\n",nv);
-			exit(1);
+	while (!achou && i <= nv) {
+		// Itera nos nos ate achar (quando acha, i tem o numero do no)
+		if ( ! (achou = !strcmp(nome,lista[i]) ) ){
+			i++;
+		};
+	}
+	if ( !achou ) {
+		// Verificou em todos os nos e nao achou
+		if (nv == MAX_NOS) {
+			printf("O programa so aceita ate %d nos.\n",nv);
+			exit(EXCEEDED_MAX_NOS);
 		}
+		// Adicionando novo no
 		nv++;
 		strcpy(lista[nv],nome);
-		return nv; /* novo no */
+		return nv;
 	}
 	else {
 		return i; /* no ja conhecido */
