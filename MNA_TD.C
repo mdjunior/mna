@@ -17,16 +17,16 @@ Versao 1.0j - 26/11/2015 Evita operacoes com zero.
 /*
 Elementos aceitos e linhas do netlist:
 
-Resistor:  R<nome> <no+> <no-> <resistencia>
-Fonte I:   I<nome> <io+> <io-> <corrente>
-Fonte V:   V<nome> <vo+> <vo-> <tensao>
+Resistor:				R<nome> <no+> <no-> <resistencia>
+Fonte I:				I<nome> <io+> <io-> <corrente>
+Fonte V:				V<nome> <vo+> <vo-> <tensao>
 
-VCCS:      G<nome> <io+> <io-> <vi+> <vi-> <transcondutancia>
-VCVC:      E<nome> <vo+> <vo-> <vi+> <vi-> <ganho de tensao>
-CCCS:      F<nome> <io+> <io-> <ii+> <ii-> <ganho de corrente>
-CCVS:      H<nome> <vo+> <vo-> <ii+> <ii-> <transresistencia>
+VCVC:					E<nome> <vo+> <vo-> <vi+> <vi-> <ganho de tensao>
+CCCS:					F<nome> <io+> <io-> <ii+> <ii-> <ganho de corrente>
+VCCS:					G<nome> <io+> <io-> <vi+> <vi-> <transcondutancia>
+CCVS:					H<nome> <vo+> <vo-> <ii+> <ii-> <transresistencia>
 
-Amp. op.:  O<nome> <vo1> <vo2> <vi1> <vi2>
+Amp. op.:				O<nome> <vo1> <vo2> <vi1> <vi2>
 
 As fontes F e H tem o ramo de entrada em curto
 O amplificador operacional ideal tem a saida suspensa
@@ -36,7 +36,7 @@ Os nos podem ser nomes
 #define versao "1.0j - 26/11/2015"
 #include <stdio.h> // printf sscanf
 #include <cstdlib>
-#include <string.h> // strcpy
+#include <string.h> // strcpy strstr
 #include <stdlib.h>
 #include <ctype.h> // toupper 
 #include <math.h>
@@ -57,11 +57,22 @@ Os nos podem ser nomes
 #define RESOLVE_TWO_TERMINALS(S) FORMAT_TWO_TERMINALS(S)
 #define FORMAT_FOUR_TERMINALS(S) "%" #S "s%" #S "s%" #S "s%" #S "s%lg"
 #define RESOLVE_FOUR_TERMINALS(S) FORMAT_FOUR_TERMINALS(S)
+#define FORMAT_AMPOP(S) "%" #S "s%" #S "s%" #S "s%" #S "s"
+#define RESOLVE_AMPOP(S) FORMAT_AMPOP(S)
 
 #define EXCEEDED_MAX_ELEMENTS 1
 #define EXCEEDED_MAX_NOME 2
 #define EXCEEDED_MAX_NOS 3
+#define UNKNOWN_ELEMENT 4
 
+typedef struct configuration { /* Parametros da analise */
+	int PRINT_NETLIST;
+	int PRINT_INTERMEDIATE_MATRIX;
+	int PRINT_INTERNAL_NETLIST;
+	int PRINT_FINAL_MATRIX;
+	int PRINT_INTERNAL_VARIABLES;
+	int PRINT_RESUME;
+} configuration;
 
 typedef struct elemento { /* Elemento do netlist */
 	char nome[MAX_NOME];
@@ -70,6 +81,7 @@ typedef struct elemento { /* Elemento do netlist */
 } elemento;
 
 elemento netlist[MAX_ELEM]; /* Netlist */
+configuration config; /* Parametros de configuracao interna */
 
 int
 	ne, /* Elementos */
@@ -232,7 +244,7 @@ int main(void)
 		tipo = txt[0];
 		p = txt + strlen(netlist[ne].nome);
 		/* Inicio dos parametros */
-		if (tipo == 'R' || tipo == 'I' || tipo == 'V' || tipo == 'C' || tipo == 'L' ) {
+		if (tipo == 'R' || tipo == 'I' || tipo == 'V' || tipo == 'C' || tipo == 'L') {
 			frv = sscanf(p, RESOLVE_TWO_TERMINALS(MAX_NOME), na, nb, &netlist[ne].valor);
 			// Verificando se os valores foram atribuidos e estavam dentro dos limites
 			if (frv != 3 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0') {
@@ -240,37 +252,74 @@ int main(void)
 				exit(EXCEEDED_MAX_NOME);
 			}
 
-			printf("%s %s %s %g\n", netlist[ne].nome, na, nb, netlist[ne].valor);
+			if (config.PRINT_NETLIST) printf("%s %s %s %g\n", netlist[ne].nome, na, nb, netlist[ne].valor);
 			netlist[ne].a = numero(na);
 			netlist[ne].b = numero(nb);
 		}
-		else if (tipo=='G' || tipo=='E' || tipo=='F' || tipo=='H') {
-			sscanf(p,"%10s%10s%10s%10s%lg",na,nb,nc,nd,&netlist[ne].valor);
-			printf("%s %s %s %s %s %g\n",netlist[ne].nome,na,nb,nc,nd,netlist[ne].valor);
-			netlist[ne].a=numero(na);
-			netlist[ne].b=numero(nb);
-			netlist[ne].c=numero(nc);
-			netlist[ne].d=numero(nd);
+		else if (tipo == 'G' || tipo == 'E' || tipo == 'F' || tipo == 'H') {
+			frv = sscanf(p, RESOLVE_FOUR_TERMINALS(MAX_NOME), na, nb, nc, nd, &netlist[ne].valor);
+			// Verificando se os valores foram atribuidos e estavam dentro dos limites
+			if (frv != 5 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0' || nc[MAX_NOME-1] != '\0' || nd[MAX_NOME-1] != '\0' ) {
+				printf("Nao foi possivel ler elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
+				exit(EXCEEDED_MAX_NOME);
+			}
+
+			if (config.PRINT_NETLIST) printf("%s %s %s %s %s %g\n", netlist[ne].nome, na, nb, nc, nd, netlist[ne].valor);
+			netlist[ne].a = numero(na);
+			netlist[ne].b = numero(nb);
+			netlist[ne].c = numero(nc);
+			netlist[ne].d = numero(nd);
 		}
-		else if (tipo=='O') {
-			sscanf(p,"%10s%10s%10s%10s",na,nb,nc,nd);
-			printf("%s %s %s %s %s\n",netlist[ne].nome,na,nb,nc,nd);
-			netlist[ne].a=numero(na);
-			netlist[ne].b=numero(nb);
-			netlist[ne].c=numero(nc);
-			netlist[ne].d=numero(nd);
+		else if (tipo == 'O') {
+			frv = sscanf(p, RESOLVE_AMPOP(MAX_NOME), na, nb, nc, nd);
+			// Verificando se os valores foram atribuidos e estavam dentro dos limites
+			if (frv != 4 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0' || nc[MAX_NOME-1] != '\0' || nd[MAX_NOME-1] != '\0' ) {
+				printf("Nao foi possivel ler elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
+				exit(EXCEEDED_MAX_NOME);
+			}
+
+			if (config.PRINT_NETLIST) printf("%s %s %s %s %s\n", netlist[ne].nome, na, nb, nc, nd);
+			netlist[ne].a = numero(na);
+			netlist[ne].b = numero(nb);
+			netlist[ne].c = numero(nc);
+			netlist[ne].d = numero(nd);
 		}
-		else if (tipo=='*') { /* Comentario comeca com "*" */
-			printf("Comentario: %s",txt);
+		else if (tipo == '*') { /* Comentario comeca com "*" */
+			frv = sscanf(p, RESOLVE_ONE_STRING(MAX_LINHA), txt);
+			printf("Comentario:\"%s\"\n", txt);
 			ne--;
+
+			// Verificando se os valores foram atribuidos e estavam dentro dos limites
+			if (frv == 1) {
+				// Verificando se eh configuracao
+				if ( strstr(txt, "PRINT_NETLIST") != NULL ){
+					config.PRINT_NETLIST = 1;
+				}
+				if ( strstr(txt, "PRINT_INTERMEDIATE_MATRIX") != NULL ){
+					config.PRINT_INTERMEDIATE_MATRIX = 1;
+				}
+				if ( strstr(txt, "PRINT_INTERNAL_NETLIST") != NULL ){
+					config.PRINT_INTERNAL_NETLIST = 1;
+				}
+				if ( strstr(txt, "PRINT_FINAL_MATRIX") != NULL ){
+					config.PRINT_FINAL_MATRIX = 1;
+				}
+				if ( strstr(txt, "PRINT_INTERNAL_VARIABLES") != NULL ){
+					config.PRINT_INTERNAL_VARIABLES = 1;
+				}
+				if ( strstr(txt, "PRINT_RESUME") != NULL ){
+					config.PRINT_RESUME = 1;
+				}
+			}
 		}
 		else {
 			printf("Elemento desconhecido: %s\n",txt);
 			getchar();
-			exit(1);
+			exit(UNKNOWN_ELEMENT);
 		}
 	}
 	fclose(arquivo);
+
 	/* Acrescenta variaveis de corrente acima dos nos, anotando no netlist */
 	nn=nv;
 	for (i=1; i<=ne; i++) {
