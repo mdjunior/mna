@@ -232,7 +232,7 @@ int main(void)
 		tipo = txt[0];
 		p = txt + strlen(netlist[ne].nome);
 		/* Inicio dos parametros */
-		if (tipo == 'R' || tipo == 'I' || tipo == 'V' ) {
+		if (tipo == 'R' || tipo == 'I' || tipo == 'V' || tipo == 'C' || tipo == 'L' ) {
 			frv = sscanf(p, RESOLVE_TWO_TERMINALS(MAX_NOME), na, nb, &netlist[ne].valor);
 			// Verificando se os valores foram atribuidos e estavam dentro dos limites
 			if (frv != 3 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0') {
