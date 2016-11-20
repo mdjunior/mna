@@ -18,12 +18,14 @@ Versao 1.0j - 26/11/2015 Evita operacoes com zero.
 Elementos aceitos e linhas do netlist:
 
 Resistor:  R<nome> <no+> <no-> <resistencia>
+Fonte I:   I<nome> <io+> <io-> <corrente>
+Fonte V:   V<nome> <vo+> <vo-> <tensao>
+
 VCCS:      G<nome> <io+> <io-> <vi+> <vi-> <transcondutancia>
 VCVC:      E<nome> <vo+> <vo-> <vi+> <vi-> <ganho de tensao>
 CCCS:      F<nome> <io+> <io-> <ii+> <ii-> <ganho de corrente>
 CCVS:      H<nome> <vo+> <vo-> <ii+> <ii-> <transresistencia>
-Fonte I:   I<nome> <io+> <io-> <corrente>
-Fonte V:   V<nome> <vo+> <vo-> <tensao>
+
 Amp. op.:  O<nome> <vo1> <vo2> <vi1> <vi2>
 
 As fontes F e H tem o ramo de entrada em curto
@@ -32,18 +34,33 @@ Os nos podem ser nomes
 */
 
 #define versao "1.0j - 26/11/2015"
-#include <stdio.h>
-#include <conio.h>
-#include <string.h>
+#include <stdio.h> // printf sscanf
+#include <cstdlib>
+#include <string.h> // strcpy
 #include <stdlib.h>
-#include <ctype.h>
+#include <ctype.h> // toupper 
 #include <math.h>
+
+
 #define MAX_LINHA 80
 #define MAX_NOME 11
 #define MAX_ELEM 50
 #define MAX_NOS 50
+#define MAX_FILENAME 50
 #define TOLG 1e-9
 #define DEBUG
+
+// defines para sscanf
+#define FORMAT_ONE_STRING(S) "%" #S "s"
+#define RESOLVE_ONE_STRING(S) FORMAT_ONE_STRING(S)
+#define FORMAT_TWO_TERMINALS(S) "%" #S "s%" #S "s%lg"
+#define RESOLVE_TWO_TERMINALS(S) FORMAT_TWO_TERMINALS(S)
+#define FORMAT_FOUR_TERMINALS(S) "%" #S "s%" #S "s%" #S "s%" #S "s%lg"
+#define RESOLVE_FOUR_TERMINALS(S) FORMAT_FOUR_TERMINALS(S)
+
+#define EXCEEDED_MAX_ELEMENTS 1
+#define EXCEEDED_MAX_NOME 2
+
 
 typedef struct elemento { /* Elemento do netlist */
 	char nome[MAX_NOME];
@@ -64,7 +81,10 @@ char
 	 contra excesso de caracteres nestas variaveis */
 	nomearquivo[MAX_LINHA+1],
 	tipo,
-	na[MAX_NOME],nb[MAX_NOME],nc[MAX_NOME],nd[MAX_NOME],
+	na[MAX_NOME],
+	nb[MAX_NOME],
+	nc[MAX_NOME],
+	nd[MAX_NOME],
 	lista[MAX_NOS+1][MAX_NOME+2], /*Tem que caber jx antes do nome */
 	txt[MAX_LINHA+1],
 	*p;
@@ -73,6 +93,18 @@ FILE *arquivo;
 double
 	g,
 	Yn[MAX_NOS+1][MAX_NOS+2];
+
+
+/* Funcao que apaga a tela para compatibilidade Windows/Linus*/
+void clear_screen()
+{
+	#ifdef WINDOWS
+		std::system("cls");
+	#else
+		// Assume POSIX
+		std::system ("clear");
+	#endif
+}
 
 /* Resolucao de sistema de equacoes lineares.
 	 Metodo de Gauss-Jordan com condensacao pivotal */
@@ -117,10 +149,11 @@ int resolversistema(void)
 /* Rotina que conta os nos e atribui numeros a eles */
 int numero(char *nome)
 {
-	int i,achou;
+	int i, achou;
 
-	i=0; achou=0;
-	while (!achou && i<=nv)
+	i=0;
+	achou=0;
+	while (!achou && i <= nv)
 		if (!(achou=!strcmp(nome,lista[i]))) i++;
 	if (!achou) {
 		if (nv==MAX_NOS) {
@@ -138,39 +171,71 @@ int numero(char *nome)
 
 int main(void)
 {
-	clrscr();
+	int frv; // functions return values
+
+	clear_screen();
 	printf("Programa demonstrativo de analise nodal modificada\n");
 	printf("Por Antonio Carlos M. de Queiroz - acmq@coe.ufrj.br\n");
-	printf("Versao %s\n",versao);
- denovo:
+	printf("Versao %s\n", versao);
+
 	/* Leitura do netlist */
-	ne=0; nv=0; strcpy(lista[0],"0");
-	printf("Nome do arquivo com o netlist (ex: mna.net): ");
-	scanf("%50s",nomearquivo);
-	arquivo=fopen(nomearquivo,"r");
-	if (arquivo==0) {
-		printf("Arquivo %s inexistente\n",nomearquivo);
-		goto denovo;
-	}
-	printf("Lendo netlist:\n");
-	fgets(txt,MAX_LINHA,arquivo);
-	printf("Titulo: %s",txt);
-	while (fgets(txt,MAX_LINHA,arquivo)) {
-		ne++; /* Nao usa o netlist[0] */
-		if (ne>MAX_ELEM) {
-			printf("O programa so aceita ate %d elementos\n",MAX_ELEM);
-			exit(1);
+	ne=0;
+	nv=0;
+	strcpy(lista[0],"0");
+
+	while (arquivo == 0) {
+		printf("Nome do arquivo com o netlist (ex: mna.net): ");
+		frv = scanf(RESOLVE_ONE_STRING(MAX_FILENAME), nomearquivo);
+		if (frv != 1 || nomearquivo[MAX_FILENAME-1] != '\0') {
+			printf("Nao foi possivel ler nome do arquivo. %d caracteres de tamanho maximo.\n", MAX_FILENAME);
+		} else {
+			arquivo = fopen(nomearquivo, "r");
+			if (arquivo == 0) {
+				printf("Arquivo %s inexistente.\n", nomearquivo);
+			}
 		}
-		txt[0]=toupper(txt[0]);
-		tipo=txt[0];
-		sscanf(txt,"%10s",netlist[ne].nome);
-		p=txt+strlen(netlist[ne].nome); /* Inicio dos parametros */
-		/* O que e lido depende do tipo */
-		if (tipo=='R' || tipo=='I' || tipo=='V') {
-			sscanf(p,"%10s%10s%lg",na,nb,&netlist[ne].valor);
-			printf("%s %s %s %g\n",netlist[ne].nome,na,nb,netlist[ne].valor);
-			netlist[ne].a=numero(na);
-			netlist[ne].b=numero(nb);
+	}
+
+	printf("Arquivo do netlist aberto com sucesso.\n");
+
+	// Pegando a primeira linha do arquivo (se for numero, eh o numero de nos)
+	fgets(txt, MAX_LINHA, arquivo);
+	printf("Titulo (primeira linha): %s", txt);
+
+	// Lendo as outras linhas
+	while ( fgets(txt, MAX_LINHA, arquivo) ) {
+
+		// Verificando numero maximo de elementos
+		ne++; /* Nao usa o netlist[0] */
+		if (ne > MAX_ELEM) {
+			printf("O programa so aceita ate %d elementos\n", MAX_ELEM);
+			exit(EXCEEDED_MAX_ELEMENTS);
+		}
+
+		// Colocando nome do elemento na estrutura de dados
+		frv = sscanf(txt, RESOLVE_ONE_STRING(MAX_NOME), netlist[ne].nome);
+		// Verificando se o nome foi atribuido e estava dentro dos limites
+		if (frv != 1 || netlist[ne].nome[MAX_NOME-1] != '\0') {
+			printf("Nao foi possivel ler nome do elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
+			exit(EXCEEDED_MAX_NOME);
+		}
+
+		// Identificando tipo de elemento
+		txt[0] = toupper(txt[0]);
+		tipo = txt[0];
+		p = txt + strlen(netlist[ne].nome);
+		/* Inicio dos parametros */
+		if (tipo == 'R' || tipo == 'I' || tipo == 'V' ) {
+			frv = sscanf(p, RESOLVE_TWO_TERMINALS(MAX_NOME), na, nb, &netlist[ne].valor);
+			// Verificando se os valores foram atribuidos e estavam dentro dos limites
+			if (frv != 3 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0') {
+				printf("Nao foi possivel ler elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
+				exit(EXCEEDED_MAX_NOME);
+			}
+
+			printf("%s %s %s %g\n", netlist[ne].nome, na, nb, netlist[ne].valor);
+			netlist[ne].a = numero(na);
+			netlist[ne].b = numero(nb);
 		}
 		else if (tipo=='G' || tipo=='E' || tipo=='F' || tipo=='H') {
 			sscanf(p,"%10s%10s%10s%10s%lg",na,nb,nc,nd,&netlist[ne].valor);
@@ -194,7 +259,7 @@ int main(void)
 		}
 		else {
 			printf("Elemento desconhecido: %s\n",txt);
-			getch();
+			getchar();
 			exit(1);
 		}
 	}
@@ -225,12 +290,12 @@ int main(void)
 			netlist[i].y=nv;
 		}
 	}
-	getch();
+	getchar();
 	/* Lista tudo */
 	printf("Variaveis internas: \n");
 	for (i=0; i<=nv; i++)
 		printf("%d -> %s\n",i,lista[i]);
-	getch();
+	getchar();
 	printf("Netlist interno final\n");
 	for (i=1; i<=ne; i++) {
 		tipo=netlist[i].nome[0];
@@ -248,10 +313,10 @@ int main(void)
 		else if (tipo=='H')
 			printf("Correntes jx e jy: %d, %d\n",netlist[i].x,netlist[i].y);
 	}
-	getch();
+	getchar();
 	/* Monta o sistema nodal modificado */
 	printf("O circuito tem %d nos, %d variaveis e %d elementos\n",nn,nv,ne);
-	getch();
+	getchar();
 	/* Zera sistema */
 	for (i=0; i<=nv; i++) {
 		for (j=0; j<=nv+1; j++)
@@ -331,12 +396,12 @@ int main(void)
 				else printf(" ... ");
 			printf("\n");
 		}
-		getch();
+		getchar();
 #endif
 	}
 	/* Resolve o sistema */
 	if (resolversistema()) {
-		getch();
+		getchar();
 		exit;
 	}
 #ifdef DEBUG
@@ -348,7 +413,7 @@ int main(void)
 				else printf(" ... ");
 			printf("\n");
 		}
-	getch();
+	getchar();
 #endif
 	/* Mostra solucao */
 	printf("Solucao:\n");
@@ -357,7 +422,7 @@ int main(void)
 		if (i==nn+1) strcpy(txt,"Corrente");
 		printf("%s %s: %g\n",txt,lista[i],Yn[i][nv+1]);
 	}
-	getch();
+	getchar();
 	return 0;
 }
 
