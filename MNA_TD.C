@@ -72,6 +72,7 @@ typedef struct configuration { /* Parametros da analise */
 	int PRINT_FINAL_MATRIX;
 	int PRINT_INTERNAL_VARIABLES;
 	int PRINT_RESUME;
+	int PRINT_SOLUTION;
 } configuration;
 
 typedef struct elemento { /* Elemento do netlist */
@@ -310,69 +311,81 @@ int main(void)
 				if ( strstr(txt, "PRINT_RESUME") != NULL ){
 					config.PRINT_RESUME = 1;
 				}
+				if ( strstr(txt, "PRINT_SOLUTION") != NULL ){
+					config.PRINT_SOLUTION = 1;
+				}
 			}
 		}
 		else {
 			printf("Elemento desconhecido: %s\n",txt);
-			getchar();
 			exit(UNKNOWN_ELEMENT);
 		}
 	}
 	fclose(arquivo);
 
 	/* Acrescenta variaveis de corrente acima dos nos, anotando no netlist */
-	nn=nv;
-	for (i=1; i<=ne; i++) {
-		tipo=netlist[i].nome[0];
-		if (tipo=='V' || tipo=='E' || tipo=='F' || tipo=='O') {
+	// nv = 0 - definido acima
+	nn = nv;
+	for (i=1; i <= ne; i++) {
+		tipo = netlist[i].nome[0];
+		// Fonte de tensao, Fonte de tensao controlada a tensao, Fonte de corrente controlada a corrente e amplificador ideal
+		//   calculamos a corrente neles
+		if (tipo == 'V' || tipo == 'E' || tipo == 'F' || tipo == 'O') {
 			nv++;
-			if (nv>MAX_NOS) {
-				printf("As correntes extra excederam o numero de variaveis permitido (%d)\n",MAX_NOS);
-				exit(1);
+			if (nv > MAX_NOS) {
+				printf("As correntes extra excederam o numero de variaveis permitido (%d)\n", MAX_NOS);
+				exit(EXCEEDED_MAX_NOS);
 			}
-			strcpy(lista[nv],"j"); /* Tem espaco para mais dois caracteres */
-			strcat(lista[nv],netlist[i].nome);
+			strcpy(lista[nv], "j"); /* Tem espaco para mais dois caracteres */
+			strcat(lista[nv], netlist[i].nome);
 			netlist[i].x=nv;
 		}
-		else if (tipo=='H') {
-			nv=nv+2;
-			if (nv>MAX_NOS) {
-				printf("As correntes extra excederam o numero de variaveis permitido (%d)\n",MAX_NOS);
-				exit(1);
+		else if (tipo == 'H') {
+			nv = nv+2;
+			if (nv > MAX_NOS) {
+				printf("As correntes extra excederam o numero de variaveis permitido (%d)\n", MAX_NOS);
+				exit(EXCEEDED_MAX_NOS);
 			}
-			strcpy(lista[nv-1],"jx"); strcat(lista[nv-1],netlist[i].nome);
-			netlist[i].x=nv-1;
-			strcpy(lista[nv],"jy"); strcat(lista[nv],netlist[i].nome);
-			netlist[i].y=nv;
+			strcpy(lista[nv-1], "jx");
+			strcat(lista[nv-1], netlist[i].nome);
+			netlist[i].x = nv-1;
+			strcpy(lista[nv], "jy");
+			strcat(lista[nv], netlist[i].nome);
+			netlist[i].y = nv;
 		}
 	}
-	getchar();
-	/* Lista tudo */
-	printf("Variaveis internas: \n");
-	for (i=0; i<=nv; i++)
-		printf("%d -> %s\n",i,lista[i]);
-	getchar();
-	printf("Netlist interno final\n");
-	for (i=1; i<=ne; i++) {
-		tipo=netlist[i].nome[0];
-		if (tipo=='R' || tipo=='I' || tipo=='V') {
-			printf("%s %d %d %g\n",netlist[i].nome,netlist[i].a,netlist[i].b,netlist[i].valor);
-		}
-		else if (tipo=='G' || tipo=='E' || tipo=='F' || tipo=='H') {
-			printf("%s %d %d %d %d %g\n",netlist[i].nome,netlist[i].a,netlist[i].b,netlist[i].c,netlist[i].d,netlist[i].valor);
-		}
-		else if (tipo=='O') {
-			printf("%s %d %d %d %d\n",netlist[i].nome,netlist[i].a,netlist[i].b,netlist[i].c,netlist[i].d);
-		}
-		if (tipo=='V' || tipo=='E' || tipo=='F' || tipo=='O')
-			printf("Corrente jx: %d\n",netlist[i].x);
-		else if (tipo=='H')
-			printf("Correntes jx e jy: %d, %d\n",netlist[i].x,netlist[i].y);
+
+	if (config.PRINT_INTERNAL_VARIABLES) {
+		printf("Variaveis internas: \n");
+		for (i=0; i <= nv; i++)
+			printf("%d -> %s\n", i, lista[i]);
 	}
-	getchar();
+
+	if (config.PRINT_INTERNAL_NETLIST) {
+		printf("Netlist interno final\n");
+		for (i=1; i <= ne; i++) {
+			tipo = netlist[i].nome[0];
+			if (tipo == 'R' || tipo == 'I' || tipo == 'V') {
+				printf("%s %d %d %g\n", netlist[i].nome, netlist[i].a, netlist[i].b, netlist[i].valor);
+			}
+			else if (tipo == 'G' || tipo == 'E' || tipo == 'F' || tipo == 'H') {
+				printf("%s %d %d %d %d %g\n", netlist[i].nome, netlist[i].a, netlist[i].b, netlist[i].c, netlist[i].d, netlist[i].valor);
+			}
+			else if (tipo == 'O') {
+				printf("%s %d %d %d %d\n", netlist[i].nome, netlist[i].a, netlist[i].b, netlist[i].c, netlist[i].d);
+			}
+			if (tipo == 'V' || tipo == 'E' || tipo == 'F' || tipo == 'O')
+				printf("Corrente jx: %d\n", netlist[i].x);
+			else if (tipo == 'H')
+				printf("Correntes jx e jy: %d, %d\n", netlist[i].x, netlist[i].y);
+		}
+	}
+
+	if (config.PRINT_RESUME) {
+		printf("O circuito tem %d nos, %d variaveis e %d elementos\n",nn,nv,ne);
+	}
+
 	/* Monta o sistema nodal modificado */
-	printf("O circuito tem %d nos, %d variaveis e %d elementos\n",nn,nv,ne);
-	getchar();
 	/* Zera sistema */
 	for (i=0; i<=nv; i++) {
 		for (j=0; j<=nv+1; j++)
@@ -443,42 +456,49 @@ int main(void)
 			Yn[netlist[i].x][netlist[i].c]+=1;
 			Yn[netlist[i].x][netlist[i].d]-=1;
 		}
-#ifdef DEBUG
-		/* Opcional: Mostra o sistema apos a montagem da estampa */
-		printf("Sistema apos a estampa de %s\n",netlist[i].nome);
-		for (k=1; k<=nv; k++) {
-			for (j=1; j<=nv+1; j++)
-				if (Yn[k][j]!=0) printf("%+3.1f ",Yn[k][j]);
-				else printf(" ... ");
-			printf("\n");
+
+
+		if (config.PRINT_INTERMEDIATE_MATRIX) {
+			/* Opcional: Mostra o sistema apos a montagem da estampa */
+			printf("Sistema apos a estampa de %s\n", netlist[i].nome);
+			for (k=1; k <= nv; k++) {
+				for (j=1; j <= nv+1; j++)
+					if (Yn[k][j]!=0) printf("%+3.1f ", Yn[k][j]);
+					else printf(" ... ");
+				printf("\n");
+			}
 		}
-		getchar();
-#endif
 	}
+
+	///////////////////////////////////////////////////////////////////////////
 	/* Resolve o sistema */
+	///////////////////////////////////////////////////////////////////////////
 	if (resolversistema()) {
 		getchar();
 		exit;
 	}
-#ifdef DEBUG
-	/* Opcional: Mostra o sistema resolvido */
-	printf("Sistema resolvido:\n");
-	for (i=1; i<=nv; i++) {
+
+	if (config.PRINT_FINAL_MATRIX) {
+		/* Opcional: Mostra o sistema resolvido */
+		printf("Sistema resolvido:\n");
+		for (i=1; i <= nv; i++) {
 			for (j=1; j<=nv+1; j++)
-				if (Yn[i][j]!=0) printf("%+3.1f ",Yn[i][j]);
+				if (Yn[i][j] != 0) printf("%+3.1f ", Yn[i][j]);
 				else printf(" ... ");
 			printf("\n");
 		}
-	getchar();
-#endif
-	/* Mostra solucao */
-	printf("Solucao:\n");
-	strcpy(txt,"Tensao");
-	for (i=1; i<=nv; i++) {
-		if (i==nn+1) strcpy(txt,"Corrente");
-		printf("%s %s: %g\n",txt,lista[i],Yn[i][nv+1]);
 	}
-	getchar();
+
+	if (config.PRINT_SOLUTION) {
+		/* Mostra solucao */
+		printf("Solucao:\n");
+		strcpy(txt, "Tensao");
+		for (i=1; i <= nv; i++) {
+			if (i == nn+1) strcpy(txt, "Corrente");
+			printf("%s %s: %g\n", txt, lista[i], Yn[i][nv+1]);
+		}
+	}
+
 	return 0;
 }
 
