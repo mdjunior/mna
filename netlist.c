@@ -95,7 +95,7 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 
 		if (debug) printf("%s %s %s %g %c\n", current->nome, na, nb, current->valor, current->subtipo);
 	}
-	else if (tipo == 'G' || tipo == 'E' || tipo == 'F' || tipo == 'H' || tipo == '$') {
+	else if (tipo == 'G' || tipo == 'E' || tipo == 'F' || tipo == 'H' || tipo == '$' || tipo == 'K') {
 		frv = sscanf(p, RESOLVE_FOUR_TERMINALS(MAX_NOME), na, nb, nc, nd, &current->valor);
 		// Verificando se os valores foram atribuidos e estavam dentro dos limites
 		if (frv != 5 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0' || nc[MAX_NOME-1] != '\0' || nd[MAX_NOME-1] != '\0' ) {
