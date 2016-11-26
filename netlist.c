@@ -17,17 +17,23 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 	nd[MAX_NOME-1] = NULL;
 	subtipo[MAX_NOME-1] = NULL;
 
-
-	frv = sscanf(txt, RESOLVE_ONE_STRING(MAX_NOME), current->nome);
-	// Verificando se o nome foi atribuido e estava dentro dos limites
-	if (frv != 1 || current->nome[MAX_NOME-1] != '\0') {
-		printf("Nao foi possivel ler nome do elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
-		return(EXCEEDED_MAX_NOME);
-	}
-
 	// Identificando tipo de elemento
 	txt[0] = toupper(txt[0]);
 	tipo = txt[0];
+
+	frv = sscanf(txt, RESOLVE_ONE_STRING(MAX_NOME), current->nome);
+	// Vamos fazer a validacao
+	// Verificando se o nome foi atribuido e estava dentro dos limites
+	if (frv != 1 || current->nome[MAX_NOME-1] != '\0') {
+		// Verificando se comentario ou configuracao de analise
+		if (tipo == '.' || tipo == '*') {
+			return(SPECIAL_LINE);
+		} else {
+			printf("Nao foi possivel ler nome do elemento da %d linha. %d caracteres de tamanho maximo (%i).\n", ne, MAX_NOME, frv);
+			return(EXCEEDED_MAX_NOME);
+		}
+	}
+
 	p = txt + strlen(current->nome);
 	/* Inicio dos parametros */
 	// R0605 6 5 1
@@ -130,7 +136,7 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 		current->b = numero(nb, lista_int, nv);
 	}
 	else if (tipo == '*' || tipo == '.') {
-		return(UNKNOWN_ELEMENT);
+		return(SPECIAL_LINE);
 	}
 	else {
 		printf("Elemento desconhecido: %s\n",txt);

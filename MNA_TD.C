@@ -55,6 +55,7 @@ typedef struct configuration { /* Parametros da analise */
 	int PRINT_SOLUTION;
 	int PRINT_ANALYSIS_DATA;
 	int configured;
+	char tipo[MAX_NOME];
 	double t_final;
 	double t_passo;
 	double passos_por_ponto;
@@ -170,21 +171,32 @@ int main(void)
 
 			// Verificacao de configuracao (refazer)
 			if (txt[0] == '.') {
-				// default values
+				char *p;
+				p = &txt[6];
+				char type[MAX_NOME];
+				frv = sscanf(p,"%lg%lg%10s%lg", &(config.t_final), &(config.t_passo), config.tipo, &(config.passos_por_ponto));
+				// Verificando
+				if ( strstr(config.tipo, "TRAP") == NULL ){
+					printf("Tipo de analise nao suportada (%s). Por favor, revise o arquivo.\n", config.tipo);
+					exit(INCORRECT_ANALYSIS_SETUP);
+				}
+				if ( config.t_final == 0 || config.t_final < config.t_passo ) {
+					printf("Tempo de simulação insuficiente (%f). Por favor, revise o arquivo.\n", config.t_final);
+					exit(INCORRECT_ANALYSIS_SETUP);
+				}
+				if ( config.t_passo <= 0 ) {
+					printf("Tempo de passo insuficiente (%f). Por favor, revise o arquivo.\n", config.t_passo);
+					exit(INCORRECT_ANALYSIS_SETUP);
+				}
+				if ( config.passos_por_ponto < 1 ) {
+					printf("Passos por ponto na tabela invalido (%f). Por favor, revise o arquivo.\n", config.passos_por_ponto);
+					exit(INCORRECT_ANALYSIS_SETUP);
+				}
 				config.configured = 1;
-				config.t_final = 0.5;
-				config.t_passo = 0.0001;
-				config.passos_por_ponto = 1;
-			// 	char *p;
-			// 	p = txt + strlen(&txt[5]);
-			// 	char string[MAX_NOME];
-			// 	frv = sscanf(p,"%lg%lg%10s%lg",&(config.t_final),&(config.t_passo),string,&(config.passos_por_ponto));
-			// 	printf("Parametros da analise no tempo(%i): \n",frv);
-			// 	printf("TEMPO FINAL: %f\n", config.t_final);
-			// 	printf("PASSO: %f\n", config.t_passo);
-			// 	printf("PASSOS POR PONTO NA TABELA: %f\n", config.passos_por_ponto);
-			// 	config.configured = 1;
 			}
+		} else if (result != 0 && result != SPECIAL_LINE) {
+			printf("Erro no processamento do netlist. Por favor, revise o arquivo.\n");
+			exit(result);
 		}
 	}
 	fclose(arquivo);
@@ -231,9 +243,10 @@ int main(void)
 
 	if (config.PRINT_ANALYSIS_DATA) {
 		printf("Parametros da analise no tempo: \n");
-		printf("TEMPO FINAL: %f\n", config.t_final);
-		printf("PASSO: %f\n", config.t_passo);
-		printf("PASSOS POR PONTO NA TABELA: %f\n", config.passos_por_ponto);
+		printf("Tipo: %s\n", config.tipo);
+		printf("Tempo Final: %f\n", config.t_final);
+		printf("Passo: %f\n", config.t_passo);
+		printf("Passos por ponto na tabela: %f\n", config.passos_por_ponto);
 	}
 
 	if (config.PRINT_INTERNAL_VARIABLES) {
