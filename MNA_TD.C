@@ -53,9 +53,15 @@ typedef struct configuration { /* Parametros da analise */
 	int PRINT_INTERNAL_VARIABLES;
 	int PRINT_RESUME;
 	int PRINT_SOLUTION;
+	int PRINT_ANALYSIS_DATA;
+	int configured;
+	double t_final;
+	double t_passo;
+	double passos_por_ponto;
 } configuration;
 
-device netlist[MAX_ELEM]; /* Netlist - elemento vem do netlist.h*/
+device netlist[MAX_ELEM]; /* Netlist - elemento vem do netlist.h */
+
 configuration config; /* Parametros de configuracao interna */
 
 int
@@ -125,9 +131,9 @@ int main(void)
 			ne--;
 
 			// Verificando se e comentario
-			char *p;
-			p = txt + strlen(&txt[0]);
 			if (txt[0] == '*') { /* Comentario comeca com "*" */
+				char *p;
+				p = txt + strlen(&txt[0]);
 				frv = sscanf(p, RESOLVE_ONE_STRING(MAX_LINHA), txt);
 				printf("Comentario:\"%s\"\n", txt);
 
@@ -156,11 +162,38 @@ int main(void)
 					if ( strstr(txt, "PRINT_SOLUTION") != NULL ){
 						config.PRINT_SOLUTION = 1;
 					}
+					if ( strstr(txt, "PRINT_ANALYSIS_DATA") != NULL ){
+						config.PRINT_ANALYSIS_DATA = 1;
+					}
 				}
+			}
+
+			// Verificacao de configuracao (refazer)
+			if (txt[0] == '.') {
+				// default values
+				config.configured = 1;
+				config.t_final = 0.5;
+				config.t_passo = 0.0001;
+				config.passos_por_ponto = 1;
+			// 	char *p;
+			// 	p = txt + strlen(&txt[5]);
+			// 	char string[MAX_NOME];
+			// 	frv = sscanf(p,"%lg%lg%10s%lg",&(config.t_final),&(config.t_passo),string,&(config.passos_por_ponto));
+			// 	printf("Parametros da analise no tempo(%i): \n",frv);
+			// 	printf("TEMPO FINAL: %f\n", config.t_final);
+			// 	printf("PASSO: %f\n", config.t_passo);
+			// 	printf("PASSOS POR PONTO NA TABELA: %f\n", config.passos_por_ponto);
+			// 	config.configured = 1;
 			}
 		}
 	}
 	fclose(arquivo);
+
+	// Verificando se configuracao para analise esta ok
+	if (config.configured != 1) {
+		printf("Nao foi possivel ler carcteristicas da analise. Por favor, revise o arquivo.\n");
+		exit(INCORRECT_ANALYSIS_SETUP);
+	}
 
 	/* Acrescenta variaveis de corrente acima dos nos, anotando no netlist */
 	// nv = 0 - definido acima
@@ -192,6 +225,13 @@ int main(void)
 			strcat(lista[nv], netlist[i].nome);
 			netlist[i].y = nv;
 		}
+	}
+
+	if (config.PRINT_ANALYSIS_DATA) {
+		printf("Parametros da analise no tempo: \n");
+		printf("TEMPO FINAL: %f\n", config.t_final);
+		printf("PASSO: %f\n", config.t_passo);
+		printf("PASSOS POR PONTO NA TABELA: %f\n", config.passos_por_ponto);
 	}
 
 	if (config.PRINT_INTERNAL_VARIABLES) {
