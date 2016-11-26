@@ -200,9 +200,10 @@ int main(void)
 	nn = nv;
 	for (i=1; i <= ne; i++) {
 		tipo = netlist[i].nome[0];
-		// Fonte de tensao, Fonte de tensao controlada a tensao, Fonte de corrente controlada a corrente e amplificador ideal
+		// Fonte de tensao, Fonte de tensao controlada a tensao, Fonte de corrente controlada a corrente, amplificador ideal
+		//   indutores e capacitores
 		//   calculamos a corrente neles
-		if (tipo == 'V' || tipo == 'E' || tipo == 'F' || tipo == 'O') {
+		if (tipo == 'V' || tipo == 'E' || tipo == 'F' || tipo == 'O' || tipo == 'L' || tipo == 'C') {
 			nv++;
 			if (nv > MAX_NOS) {
 				printf("As correntes extra excederam o numero de variaveis permitido (%d)\n", MAX_NOS);
@@ -212,6 +213,7 @@ int main(void)
 			strcat(lista[nv], netlist[i].nome);
 			netlist[i].x=nv;
 		}
+		// Fonte de tensao controlada a corrente
 		else if (tipo == 'H') {
 			nv = nv+2;
 			if (nv > MAX_NOS) {
