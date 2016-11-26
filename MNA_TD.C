@@ -36,12 +36,14 @@ Os nos podem ser nomes
 #define versao "1.0j - 26/11/2015"
 #include <stdio.h> // printf sscanf
 #include <cstdlib>
-#include <string.h> // strcpy strstr
+#include <string.h> // strcpy strstr strlen
 #include <stdlib.h>
 #include <ctype.h> // toupper 
 
 #include "defines.h"
 #include "utils.h"
+#include "netlist.h"
+
 
 typedef struct configuration { /* Parametros da analise */
 	int PRINT_NETLIST;
@@ -53,13 +55,7 @@ typedef struct configuration { /* Parametros da analise */
 	int PRINT_SOLUTION;
 } configuration;
 
-typedef struct elemento { /* Elemento do netlist */
-	char nome[MAX_NOME];
-	double valor;
-	int a,b,c,d,x,y;
-} elemento;
-
-elemento netlist[MAX_ELEM]; /* Netlist */
+device netlist[MAX_ELEM]; /* Netlist - elemento vem do netlist.h*/
 configuration config; /* Parametros de configuracao interna */
 
 int
@@ -121,101 +117,47 @@ int main(void)
 
 	// Lendo as outras linhas
 	while ( fgets(txt, MAX_LINHA, arquivo) ) {
-
-		// Verificando numero maximo de elementos
-		ne++; /* Nao usa o netlist[0] */
-		if (ne > MAX_ELEM) {
-			printf("O programa so aceita ate %d elementos\n", MAX_ELEM);
-			exit(EXCEEDED_MAX_ELEMENTS);
-		}
-
-		// Colocando nome do elemento na estrutura de dados
-		frv = sscanf(txt, RESOLVE_ONE_STRING(MAX_NOME), netlist[ne].nome);
-		// Verificando se o nome foi atribuido e estava dentro dos limites
-		if (frv != 1 || netlist[ne].nome[MAX_NOME-1] != '\0') {
-			printf("Nao foi possivel ler nome do elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
-			exit(EXCEEDED_MAX_NOME);
-		}
-
-		// Identificando tipo de elemento
-		txt[0] = toupper(txt[0]);
-		tipo = txt[0];
-		p = txt + strlen(netlist[ne].nome);
-		/* Inicio dos parametros */
-		if (tipo == 'R' || tipo == 'I' || tipo == 'V' || tipo == 'C' || tipo == 'L') {
-			frv = sscanf(p, RESOLVE_TWO_TERMINALS(MAX_NOME), na, nb, &netlist[ne].valor);
-			// Verificando se os valores foram atribuidos e estavam dentro dos limites
-			if (frv != 3 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0') {
-				printf("Nao foi possivel ler elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
-				exit(EXCEEDED_MAX_NOME);
-			}
-
-			if (config.PRINT_NETLIST) printf("%s %s %s %g\n", netlist[ne].nome, na, nb, netlist[ne].valor);
-			netlist[ne].a = numero(na, lista, &nv);
-			netlist[ne].b = numero(nb, lista, &nv);
-		}
-		else if (tipo == 'G' || tipo == 'E' || tipo == 'F' || tipo == 'H') {
-			frv = sscanf(p, RESOLVE_FOUR_TERMINALS(MAX_NOME), na, nb, nc, nd, &netlist[ne].valor);
-			// Verificando se os valores foram atribuidos e estavam dentro dos limites
-			if (frv != 5 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0' || nc[MAX_NOME-1] != '\0' || nd[MAX_NOME-1] != '\0' ) {
-				printf("Nao foi possivel ler elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
-				exit(EXCEEDED_MAX_NOME);
-			}
-
-			if (config.PRINT_NETLIST) printf("%s %s %s %s %s %g\n", netlist[ne].nome, na, nb, nc, nd, netlist[ne].valor);
-			netlist[ne].a = numero(na, lista, &nv);
-			netlist[ne].b = numero(nb, lista, &nv);
-			netlist[ne].c = numero(nc, lista, &nv);
-			netlist[ne].d = numero(nd, lista, &nv);
-		}
-		else if (tipo == 'O') {
-			frv = sscanf(p, RESOLVE_AMPOP(MAX_NOME), na, nb, nc, nd);
-			// Verificando se os valores foram atribuidos e estavam dentro dos limites
-			if (frv != 4 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0' || nc[MAX_NOME-1] != '\0' || nd[MAX_NOME-1] != '\0' ) {
-				printf("Nao foi possivel ler elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
-				exit(EXCEEDED_MAX_NOME);
-			}
-
-			if (config.PRINT_NETLIST) printf("%s %s %s %s %s\n", netlist[ne].nome, na, nb, nc, nd);
-			netlist[ne].a = numero(na, lista, &nv);
-			netlist[ne].b = numero(nb, lista, &nv);
-			netlist[ne].c = numero(nc, lista, &nv);
-			netlist[ne].d = numero(nd, lista, &nv);
-		}
-		else if (tipo == '*') { /* Comentario comeca com "*" */
-			frv = sscanf(p, RESOLVE_ONE_STRING(MAX_LINHA), txt);
-			printf("Comentario:\"%s\"\n", txt);
+		ne++;
+		int result;
+		result = process_device(txt, ne, &nv, lista, &netlist[ne], config.PRINT_NETLIST);
+		if (result) {
+			// Nao e elemento (decrementando)
 			ne--;
 
-			// Verificando se os valores foram atribuidos e estavam dentro dos limites
-			if (frv == 1) {
-				// Verificando se eh configuracao
-				if ( strstr(txt, "PRINT_NETLIST") != NULL ){
-					config.PRINT_NETLIST = 1;
-				}
-				if ( strstr(txt, "PRINT_INTERMEDIATE_MATRIX") != NULL ){
-					config.PRINT_INTERMEDIATE_MATRIX = 1;
-				}
-				if ( strstr(txt, "PRINT_INTERNAL_NETLIST") != NULL ){
-					config.PRINT_INTERNAL_NETLIST = 1;
-				}
-				if ( strstr(txt, "PRINT_FINAL_MATRIX") != NULL ){
-					config.PRINT_FINAL_MATRIX = 1;
-				}
-				if ( strstr(txt, "PRINT_INTERNAL_VARIABLES") != NULL ){
-					config.PRINT_INTERNAL_VARIABLES = 1;
-				}
-				if ( strstr(txt, "PRINT_RESUME") != NULL ){
-					config.PRINT_RESUME = 1;
-				}
-				if ( strstr(txt, "PRINT_SOLUTION") != NULL ){
-					config.PRINT_SOLUTION = 1;
+			// Verificando se e comentario
+			char *p;
+			p = txt + strlen(&txt[0]);
+			if (txt[0] == '*') { /* Comentario comeca com "*" */
+				frv = sscanf(p, RESOLVE_ONE_STRING(MAX_LINHA), txt);
+				printf("Comentario:\"%s\"\n", txt);
+
+				// Verificando se os valores foram atribuidos e estavam dentro dos limites
+				// Verificar porque está dando -1
+				if (frv) {
+					// Verificando se eh configuracao
+					if ( strstr(txt, "PRINT_NETLIST") != NULL ){
+						config.PRINT_NETLIST = 1;
+					}
+					if ( strstr(txt, "PRINT_INTERMEDIATE_MATRIX") != NULL ){
+						config.PRINT_INTERMEDIATE_MATRIX = 1;
+					}
+					if ( strstr(txt, "PRINT_INTERNAL_NETLIST") != NULL ){
+						config.PRINT_INTERNAL_NETLIST = 1;
+					}
+					if ( strstr(txt, "PRINT_FINAL_MATRIX") != NULL ){
+						config.PRINT_FINAL_MATRIX = 1;
+					}
+					if ( strstr(txt, "PRINT_INTERNAL_VARIABLES") != NULL ){
+						config.PRINT_INTERNAL_VARIABLES = 1;
+					}
+					if ( strstr(txt, "PRINT_RESUME") != NULL ){
+						config.PRINT_RESUME = 1;
+					}
+					if ( strstr(txt, "PRINT_SOLUTION") != NULL ){
+						config.PRINT_SOLUTION = 1;
+					}
 				}
 			}
-		}
-		else {
-			printf("Elemento desconhecido: %s\n",txt);
-			exit(UNKNOWN_ELEMENT);
 		}
 	}
 	fclose(arquivo);

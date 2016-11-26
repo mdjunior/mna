@@ -91,3 +91,6 @@ int resolversistema(double Yn[][MAX_NOS+2], int *nv)
 	}
 	return 0;
 }
+
+
+
