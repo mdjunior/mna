@@ -100,16 +100,16 @@ char
 	nc[MAX_NOME],
 	nd[MAX_NOME],
 	lista[MAX_NOS+1][MAX_NOME+2], // Lista com o numero do no e o nome (Tem que caber jx antes do nome)
-	txt[MAX_LINHA+1],
+	txt[MAX_LINHA+1], // Variavel temporaria que sera usada para processar cada linha do netlist
 	*p;
 FILE *arquivo;
 
 double
-	g,
-	Yn[MAX_NOS+1][MAX_NOS+2];
+	g, // Variavel intermediaria/temporaria para ser usada nas estampas
+	Yn[MAX_NOS+1][MAX_NOS+2]; // Matriz onde o sistema fica com as estampas
 
 
-/* Funcao que apaga a tela para compatibilidade Windows/Linus*/
+/* Funcao que apaga a tela para compatibilidade Windows/Linus */
 void clear_screen()
 {
 	#ifdef WINDOWS
