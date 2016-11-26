@@ -392,69 +392,69 @@ int main(void)
 			Yn[i][j]=0;
 	}
 	/* Monta estampas */
-	for (i=1; i<=ne; i++) {
-		tipo=netlist[i].nome[0];
-		if (tipo=='R') {
-			g=1/netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].a]+=g;
-			Yn[netlist[i].b][netlist[i].b]+=g;
-			Yn[netlist[i].a][netlist[i].b]-=g;
-			Yn[netlist[i].b][netlist[i].a]-=g;
+	for (i=1; i <= ne; i++) {
+		tipo = netlist[i].nome[0];
+		if (tipo == 'R') {
+			g = 1/netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].a] += g;
+			Yn[netlist[i].b][netlist[i].b] += g;
+			Yn[netlist[i].a][netlist[i].b] -= g;
+			Yn[netlist[i].b][netlist[i].a] -= g;
 		}
-		else if (tipo=='G') {
-			g=netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].c]+=g;
-			Yn[netlist[i].b][netlist[i].d]+=g;
-			Yn[netlist[i].a][netlist[i].d]-=g;
-			Yn[netlist[i].b][netlist[i].c]-=g;
+		else if (tipo == 'G') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].c] += g;
+			Yn[netlist[i].b][netlist[i].d] += g;
+			Yn[netlist[i].a][netlist[i].d] -= g;
+			Yn[netlist[i].b][netlist[i].c] -= g;
 		}
-		else if (tipo=='I') {
-			g=netlist[i].valor;
-			Yn[netlist[i].a][nv+1]-=g;
-			Yn[netlist[i].b][nv+1]+=g;
+		else if (tipo == 'I') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][nv+1] -= g;
+			Yn[netlist[i].b][nv+1] += g;
 		}
-		else if (tipo=='V') {
-			Yn[netlist[i].a][netlist[i].x]+=1;
-			Yn[netlist[i].b][netlist[i].x]-=1;
-			Yn[netlist[i].x][netlist[i].a]-=1;
-			Yn[netlist[i].x][netlist[i].b]+=1;
-			Yn[netlist[i].x][nv+1]-=netlist[i].valor;
+		else if (tipo == 'V') {
+			Yn[netlist[i].a][netlist[i].x] += 1;
+			Yn[netlist[i].b][netlist[i].x] -= 1;
+			Yn[netlist[i].x][netlist[i].a] -= 1;
+			Yn[netlist[i].x][netlist[i].b] += 1;
+			Yn[netlist[i].x][nv+1] -= netlist[i].valor;
 		}
-		else if (tipo=='E') {
-			g=netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].x]+=1;
-			Yn[netlist[i].b][netlist[i].x]-=1;
-			Yn[netlist[i].x][netlist[i].a]-=1;
-			Yn[netlist[i].x][netlist[i].b]+=1;
-			Yn[netlist[i].x][netlist[i].c]+=g;
-			Yn[netlist[i].x][netlist[i].d]-=g;
+		else if (tipo == 'E') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].x] += 1;
+			Yn[netlist[i].b][netlist[i].x] -= 1;
+			Yn[netlist[i].x][netlist[i].a] -= 1;
+			Yn[netlist[i].x][netlist[i].b] += 1;
+			Yn[netlist[i].x][netlist[i].c] += g;
+			Yn[netlist[i].x][netlist[i].d] -= g;
 		}
-		else if (tipo=='F') {
-			g=netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].x]+=g;
-			Yn[netlist[i].b][netlist[i].x]-=g;
-			Yn[netlist[i].c][netlist[i].x]+=1;
-			Yn[netlist[i].d][netlist[i].x]-=1;
-			Yn[netlist[i].x][netlist[i].c]-=1;
-			Yn[netlist[i].x][netlist[i].d]+=1;
+		else if (tipo == 'F') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].x] += g;
+			Yn[netlist[i].b][netlist[i].x] -= g;
+			Yn[netlist[i].c][netlist[i].x] += 1;
+			Yn[netlist[i].d][netlist[i].x] -= 1;
+			Yn[netlist[i].x][netlist[i].c] -= 1;
+			Yn[netlist[i].x][netlist[i].d] += 1;
 		}
-		else if (tipo=='H') {
-			g=netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].y]+=1;
-			Yn[netlist[i].b][netlist[i].y]-=1;
-			Yn[netlist[i].c][netlist[i].x]+=1;
-			Yn[netlist[i].d][netlist[i].x]-=1;
-			Yn[netlist[i].y][netlist[i].a]-=1;
-			Yn[netlist[i].y][netlist[i].b]+=1;
-			Yn[netlist[i].x][netlist[i].c]-=1;
-			Yn[netlist[i].x][netlist[i].d]+=1;
-			Yn[netlist[i].y][netlist[i].x]+=g;
+		else if (tipo == 'H') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].y] += 1;
+			Yn[netlist[i].b][netlist[i].y] -= 1;
+			Yn[netlist[i].c][netlist[i].x] += 1;
+			Yn[netlist[i].d][netlist[i].x] -= 1;
+			Yn[netlist[i].y][netlist[i].a] -= 1;
+			Yn[netlist[i].y][netlist[i].b] += 1;
+			Yn[netlist[i].x][netlist[i].c] -= 1;
+			Yn[netlist[i].x][netlist[i].d] += 1;
+			Yn[netlist[i].y][netlist[i].x] += g;
 		}
-		else if (tipo=='O') {
-			Yn[netlist[i].a][netlist[i].x]+=1;
-			Yn[netlist[i].b][netlist[i].x]-=1;
-			Yn[netlist[i].x][netlist[i].c]+=1;
-			Yn[netlist[i].x][netlist[i].d]-=1;
+		else if (tipo == 'O') {
+			Yn[netlist[i].a][netlist[i].x] += 1;
+			Yn[netlist[i].b][netlist[i].x] -= 1;
+			Yn[netlist[i].x][netlist[i].c] += 1;
+			Yn[netlist[i].x][netlist[i].d] -= 1;
 		}
 
 
