@@ -152,8 +152,19 @@ int build_nodal_system(int ne, int *nv, device netlist[], double Yn[][MAX_NOS+2]
 	double g;
 	int i, j, k;
 	char tipo;
+	double solucao_anterior[MAX_NOS+1][MAX_NOS+2];
 
+	// Se estiver em t=0, apagando variavel Yn
+	if (t_atual == 0) {
+		for (i=0; i <= *nv; i++) {
+			for (j=0; j <= *nv+1; j++)
+				Yn[i][j] = 0;
+		}
+	}
 	/* Monta o sistema nodal modificado */
+	/* Salva solucao anterior */
+	memcpy(solucao_anterior, Yn, sizeof(double) * MAX_NOS+1 * MAX_NOS+2);
+
 	/* Zera sistema */
 	for (i=0; i <= *nv; i++) {
 		for (j=0; j <= *nv+1; j++)
@@ -176,14 +187,8 @@ int build_nodal_system(int ne, int *nv, device netlist[], double Yn[][MAX_NOS+2]
 			Yn[netlist[i].b][netlist[i].x] = -1;
 			Yn[netlist[i].x][netlist[i].a] = 1;
 			Yn[netlist[i].x][netlist[i].b] = -1;
-
-			if (t_atual == 0) {
-				Yn[netlist[i].x][netlist[i].x] -= ( t_passo/MIN_PASSO ) / netlist[i].valor; // resisitencia do capacitor
-				Yn[netlist[i].x][nv+1] += 0; // corrente do capacitor
-			} else {
-
-			}
-
+			Yn[netlist[i].x][netlist[i].x] -= capacitor_resistance(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
+			Yn[netlist[i].x][*nv+1] += capacitor_current(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
 		}
 		else if (tipo == 'G') {
 			g = netlist[i].valor;
@@ -255,5 +260,28 @@ int build_nodal_system(int ne, int *nv, device netlist[], double Yn[][MAX_NOS+2]
 		}
 	}
 	return 0;
+}
+
+// Calcula resistencia do capacitor
+double capacitor_resistance(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto)
+{
+	// Ponto de operacao deltaT/C
+	if (t_atual == 0) {
+		return ( t_passo/DIVISOR_DE_PASSO ) / elemento->valor;
+	}
+
+	// deltaT/2C
+	return (t_passo/passos_por_ponto) / ( 2.0*(elemento->valor) );
+}
+
+// Calcula corrente do capacitor
+double capacitor_current(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto)
+{
+	if (t_atual == 0) {
+		return 0;
+	}
+	// corrente anterior * deltaT/2C + (tensao_anterior)
+	return ( ( *(solucao_anterior[elemento->x]) ) * (t_passo/passos_por_ponto) / (2.0*(elemento->valor)) )
+		+ (solucao_anterior[elemento->a] - solucao_anterior[elemento->b]);
 }
 

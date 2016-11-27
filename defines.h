@@ -5,6 +5,9 @@
 #define MAX_FILENAME 50
 #define TOLG 1e-9
 #define MIN_PASSO 10e9 // usado para calcular a corrente do capacitor e a tensao do indutor em t=0
+#define MIN_R 10e-9
+#define MAX_R 10e9
+#define DIVISOR_DE_PASSO 10e9
 #define DEBUG
 
 // defines para sscanf

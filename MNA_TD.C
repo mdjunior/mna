@@ -280,45 +280,63 @@ int main(void)
 		printf("O circuito tem %d nos, %d variaveis e %d elementos\n",nn,nv,ne);
 	}
 
-	///////////////////////////////////////////////////////////////////////////
-	/* Monta sistema nodal */
-	///////////////////////////////////////////////////////////////////////////
+	// Marcando inicio
 	config.t_atual = 0;
-	frv = build_nodal_system(ne, &nv, netlist, Yn, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
-	if (frv) {
-		printf("Não foi possível montar o sistema nodal.\n");
-		exit(IMPOSSIBLE_BUILD_NODAL_SYSTEM);
-	}
+	int printed_title;
 
-	///////////////////////////////////////////////////////////////////////////
-	/* Resolve o sistema */
-	///////////////////////////////////////////////////////////////////////////
-	frv = resolversistema(Yn, &nv);
-	if (frv) {
-		exit(frv);
-	}
+	while (config.t_atual < config.t_final) {
 
-	if (config.PRINT_FINAL_MATRIX) {
-		/* Opcional: Mostra o sistema resolvido */
-		printf("Sistema resolvido:\n");
-		for (i=1; i <= nv; i++) {
-			for (j=1; j<=nv+1; j++)
-				if (Yn[i][j] != 0) printf("%+3.1f ", Yn[i][j]);
-				else printf(" ... ");
+		///////////////////////////////////////////////////////////////////////////
+		/* Monta sistema nodal */
+		///////////////////////////////////////////////////////////////////////////
+		frv = build_nodal_system(ne, &nv, netlist, Yn, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
+		if (frv) {
+			printf("Não foi possível montar o sistema nodal.\n");
+			exit(IMPOSSIBLE_BUILD_NODAL_SYSTEM);
+		}
+
+		///////////////////////////////////////////////////////////////////////////
+		/* Resolve o sistema */
+		///////////////////////////////////////////////////////////////////////////
+		frv = resolversistema(Yn, &nv);
+		if (frv) {
+			exit(frv);
+		}
+
+		if (config.PRINT_FINAL_MATRIX) {
+			/* Opcional: Mostra o sistema resolvido */
+			printf("Sistema resolvido:\n");
+			for (i=1; i <= nv; i++) {
+				for (j=1; j<=nv+1; j++)
+					if (Yn[i][j] != 0) printf("%+3.1f ", Yn[i][j]);
+					else printf(" ... ");
+				printf("\n");
+			}
+		}
+
+		if (config.PRINT_SOLUTION) {
+			/* Mostra solucao */
+			if (printed_title != 1) {
+				printf("t\t");
+				strcpy(txt, "T");
+				for (i=1; i <= nv; i++) {
+					if (i == nn+1)
+						strcpy(txt, "I");
+				//	printf("%s %s: %g\n", txt, lista[i], Yn[i][nv+1]);
+					printf("%s\t", lista[i]);
+				}
+				printf("\n");
+				printed_title = 1;
+			}
+			printf("%g\t", config.t_atual);
+			for (i=1; i <= nv; i++) {
+			//	printf("%s %s: %g\n", txt, lista[i], Yn[i][nv+1]);
+				printf("%g\t", Yn[i][nv+1]);
+			}
 			printf("\n");
 		}
+		config.t_atual += config.t_passo;
 	}
-
-	if (config.PRINT_SOLUTION) {
-		/* Mostra solucao */
-		printf("Solucao:\n");
-		strcpy(txt, "Tensao");
-		for (i=1; i <= nv; i++) {
-			if (i == nn+1) strcpy(txt, "Corrente");
-			printf("%s %s: %g\n", txt, lista[i], Yn[i][nv+1]);
-		}
-	}
-
 	return 0;
 }
 
