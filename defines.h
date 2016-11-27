@@ -4,6 +4,7 @@
 #define MAX_NOS 50 // used in utils.h
 #define MAX_FILENAME 50
 #define TOLG 1e-9
+#define MIN_PASSO 10e9 // usado para calcular a corrente do capacitor e a tensao do indutor em t=0
 #define DEBUG
 
 // defines para sscanf
@@ -40,3 +41,7 @@
 #define UNKNOWN_SOURCE 5
 #define INCORRECT_ANALYSIS_SETUP 6
 #define SPECIAL_LINE 7
+#define IMPOSSIBLE_BUILD_NODAL_SYSTEM 8
+#define SINGULAR_SYSTEM 9
+
+

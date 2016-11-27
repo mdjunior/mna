@@ -145,3 +145,115 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 
 	return 0;
 }
+
+
+int build_nodal_system(int ne, int *nv, device netlist[], double Yn[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto, int debug)
+{
+	double g;
+	int i, j, k;
+	char tipo;
+
+	/* Monta o sistema nodal modificado */
+	/* Zera sistema */
+	for (i=0; i <= *nv; i++) {
+		for (j=0; j <= *nv+1; j++)
+			Yn[i][j] = 0;
+	}
+
+	/* Monta estampas */
+	for (i=1; i <= ne; i++) {
+		tipo = netlist[i].nome[0];
+		if (tipo == 'R') {
+			g = 1/netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].a] += g;
+			Yn[netlist[i].b][netlist[i].b] += g;
+			Yn[netlist[i].a][netlist[i].b] -= g;
+			Yn[netlist[i].b][netlist[i].a] -= g;
+		}
+		else if (tipo == 'C')
+		{
+			Yn[netlist[i].a][netlist[i].x] = 1;
+			Yn[netlist[i].b][netlist[i].x] = -1;
+			Yn[netlist[i].x][netlist[i].a] = 1;
+			Yn[netlist[i].x][netlist[i].b] = -1;
+
+			if (t_atual == 0) {
+				Yn[netlist[i].x][netlist[i].x] -= ( t_passo/MIN_PASSO ) / netlist[i].valor; // resisitencia do capacitor
+				Yn[netlist[i].x][nv+1] += 0; // corrente do capacitor
+			} else {
+
+			}
+
+		}
+		else if (tipo == 'G') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].c] += g;
+			Yn[netlist[i].b][netlist[i].d] += g;
+			Yn[netlist[i].a][netlist[i].d] -= g;
+			Yn[netlist[i].b][netlist[i].c] -= g;
+		}
+		else if (tipo == 'I') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][*nv+1] -= g;
+			Yn[netlist[i].b][*nv+1] += g;
+		}
+		else if (tipo == 'V') {
+			Yn[netlist[i].a][netlist[i].x] += 1;
+			Yn[netlist[i].b][netlist[i].x] -= 1;
+			Yn[netlist[i].x][netlist[i].a] -= 1;
+			Yn[netlist[i].x][netlist[i].b] += 1;
+			Yn[netlist[i].x][*nv+1] -= netlist[i].valor;
+		}
+		else if (tipo == 'E') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].x] += 1;
+			Yn[netlist[i].b][netlist[i].x] -= 1;
+			Yn[netlist[i].x][netlist[i].a] -= 1;
+			Yn[netlist[i].x][netlist[i].b] += 1;
+			Yn[netlist[i].x][netlist[i].c] += g;
+			Yn[netlist[i].x][netlist[i].d] -= g;
+		}
+		else if (tipo == 'F') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].x] += g;
+			Yn[netlist[i].b][netlist[i].x] -= g;
+			Yn[netlist[i].c][netlist[i].x] += 1;
+			Yn[netlist[i].d][netlist[i].x] -= 1;
+			Yn[netlist[i].x][netlist[i].c] -= 1;
+			Yn[netlist[i].x][netlist[i].d] += 1;
+		}
+		else if (tipo == 'H') {
+			g = netlist[i].valor;
+			Yn[netlist[i].a][netlist[i].y] += 1;
+			Yn[netlist[i].b][netlist[i].y] -= 1;
+			Yn[netlist[i].c][netlist[i].x] += 1;
+			Yn[netlist[i].d][netlist[i].x] -= 1;
+			Yn[netlist[i].y][netlist[i].a] -= 1;
+			Yn[netlist[i].y][netlist[i].b] += 1;
+			Yn[netlist[i].x][netlist[i].c] -= 1;
+			Yn[netlist[i].x][netlist[i].d] += 1;
+			Yn[netlist[i].y][netlist[i].x] += g;
+		}
+		else if (tipo == 'O') {
+			Yn[netlist[i].a][netlist[i].x] += 1;
+			Yn[netlist[i].b][netlist[i].x] -= 1;
+			Yn[netlist[i].x][netlist[i].c] += 1;
+			Yn[netlist[i].x][netlist[i].d] -= 1;
+		}
+
+		if (debug) {
+			/* Opcional: Mostra o sistema apos a montagem da estampa */
+			printf("Sistema apos a estampa de %s\n", netlist[i].nome);
+			for (k=1; k <= *nv; k++) {
+				for (j=1; j <= *nv+1; j++)
+					if (Yn[k][j]!=0)
+						printf("%+3.1f ", Yn[k][j]);
+					else
+						printf(" ... ");
+				printf("\n");
+			}
+		}
+	}
+	return 0;
+}
+
