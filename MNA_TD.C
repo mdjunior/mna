@@ -322,7 +322,6 @@ int main(void)
 				for (i=1; i <= nv; i++) {
 					if (i == nn+1)
 						strcpy(txt, "I");
-				//	printf("%s %s: %g\n", txt, lista[i], Yn[i][nv+1]);
 					printf("%s\t", lista[i]);
 				}
 				printf("\n");
@@ -330,12 +329,11 @@ int main(void)
 			}
 			printf("%g\t", config.t_atual);
 			for (i=1; i <= nv; i++) {
-			//	printf("%s %s: %g\n", txt, lista[i], Yn[i][nv+1]);
 				printf("%g\t", Yn[i][nv+1]);
 			}
 			printf("\n");
 		}
-		config.t_atual += config.t_passo;
+		config.t_atual += config.t_passo/config.passos_por_ponto;
 	}
 	return 0;
 }
