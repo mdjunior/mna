@@ -86,10 +86,6 @@ char
 	*p;
 FILE *arquivo;
 
-double
-	g, // Variavel intermediaria/temporaria para ser usada nas estampas
-	Yn[MAX_NOS+1][MAX_NOS+2]; // Matriz onde o sistema fica com as estampas
-
 int main(void)
 {
 	int frv; // functions return values
@@ -282,14 +278,26 @@ int main(void)
 
 	// Marcando inicio
 	config.t_atual = 0;
-	int printed_title;
+	double solucao_anterior[MAX_NOS+1][MAX_NOS+2];
+	double solucao_atual[MAX_NOS+1][MAX_NOS+2];
+
+	// inicializando listas
+	for (i=0; i <= MAX_NOS; i++) {
+		for (j=0; j <= MAX_NOS+1; j++) {
+			solucao_anterior[i][j] = 0;
+			solucao_atual[i][j] = 0;
+		}
+
+	}
+
+	int printed_title; // controlando impressao da legenda dos resultados
 
 	while (config.t_atual < config.t_final) {
 
 		///////////////////////////////////////////////////////////////////////////
 		/* Monta sistema nodal */
 		///////////////////////////////////////////////////////////////////////////
-		frv = build_nodal_system(ne, &nv, netlist, Yn, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
+		frv = build_nodal_system(ne, &nv, netlist, solucao_atual, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
 		if (frv) {
 			printf("Não foi possível montar o sistema nodal.\n");
 			exit(IMPOSSIBLE_BUILD_NODAL_SYSTEM);
@@ -298,7 +306,7 @@ int main(void)
 		///////////////////////////////////////////////////////////////////////////
 		/* Resolve o sistema */
 		///////////////////////////////////////////////////////////////////////////
-		frv = resolversistema(Yn, &nv);
+		frv = resolversistema(solucao_atual, &nv);
 		if (frv) {
 			exit(frv);
 		}
@@ -308,7 +316,7 @@ int main(void)
 			printf("Sistema resolvido:\n");
 			for (i=1; i <= nv; i++) {
 				for (j=1; j<=nv+1; j++)
-					if (Yn[i][j] != 0) printf("%+3.1f ", Yn[i][j]);
+					if (solucao_atual[i][j] != 0) printf("%+3.1f ", solucao_atual[i][j]);
 					else printf(" ... ");
 				printf("\n");
 			}
@@ -329,7 +337,7 @@ int main(void)
 			}
 			printf("%g\t", config.t_atual);
 			for (i=1; i <= nv; i++) {
-				printf("%g\t", Yn[i][nv+1]);
+				printf("%g\t", solucao_atual[i][nv+1]);
 			}
 			printf("\n");
 		}

@@ -21,4 +21,8 @@ double capacitor_current(device *elemento, double solucao_anterior[][MAX_NOS+2],
 
 double capacitor_resistance(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
 
+double inductor_resistance(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
+
+double inductor_voltage(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
+
 #endif

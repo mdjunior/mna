@@ -11,11 +11,12 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 	int frv = 0;
 	char *p;
 	char tipo, na[MAX_NOME], nb[MAX_NOME], nc[MAX_NOME], nd[MAX_NOME], subtipo[MAX_NOME];
-	na[MAX_NOME-1] = NULL;
-	nb[MAX_NOME-1] = NULL;
-	nc[MAX_NOME-1] = NULL;
-	nd[MAX_NOME-1] = NULL;
-	subtipo[MAX_NOME-1] = NULL;
+
+	na[MAX_NOME-1] = '\0';
+	nb[MAX_NOME-1] = '\0';
+	nc[MAX_NOME-1] = '\0';
+	nd[MAX_NOME-1] = '\0';
+	subtipo[MAX_NOME-1] = '\0';
 
 	// Identificando tipo de elemento
 	txt[0] = toupper(txt[0]);
@@ -147,28 +148,28 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 }
 
 
-int build_nodal_system(int ne, int *nv, device netlist[], double Yn[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto, int debug)
+int build_nodal_system(int ne, int *nv, device netlist[], double nodal_matrix[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto, int debug)
 {
 	double g;
 	int i, j, k;
 	char tipo;
 	double solucao_anterior[MAX_NOS+1][MAX_NOS+2];
 
-	// Se estiver em t=0, apagando variavel Yn
+	// Se estiver em t=0, apagando variavel nodal_matrix
 	if (t_atual == 0) {
 		for (i=0; i <= *nv; i++) {
 			for (j=0; j <= *nv+1; j++)
-				Yn[i][j] = 0;
+				nodal_matrix[i][j] = 0;
 		}
 	}
 	/* Monta o sistema nodal modificado */
 	/* Salva solucao anterior */
-	memcpy(solucao_anterior, Yn, sizeof(double) * MAX_NOS+1 * MAX_NOS+2);
+	memcpy(solucao_anterior, nodal_matrix, sizeof(double) * (MAX_NOS+1) * (MAX_NOS+2));
 
 	/* Zera sistema */
 	for (i=0; i <= *nv; i++) {
 		for (j=0; j <= *nv+1; j++)
-			Yn[i][j] = 0;
+			nodal_matrix[i][j] = 0;
 	}
 
 	/* Monta estampas */
@@ -176,74 +177,83 @@ int build_nodal_system(int ne, int *nv, device netlist[], double Yn[][MAX_NOS+2]
 		tipo = netlist[i].nome[0];
 		if (tipo == 'R') {
 			g = 1/netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].a] += g;
-			Yn[netlist[i].b][netlist[i].b] += g;
-			Yn[netlist[i].a][netlist[i].b] -= g;
-			Yn[netlist[i].b][netlist[i].a] -= g;
+			nodal_matrix[netlist[i].a][netlist[i].a] += g;
+			nodal_matrix[netlist[i].b][netlist[i].b] += g;
+			nodal_matrix[netlist[i].a][netlist[i].b] -= g;
+			nodal_matrix[netlist[i].b][netlist[i].a] -= g;
 		}
 		else if (tipo == 'C')
 		{
-			Yn[netlist[i].a][netlist[i].x] = 1;
-			Yn[netlist[i].b][netlist[i].x] = -1;
-			Yn[netlist[i].x][netlist[i].a] = 1;
-			Yn[netlist[i].x][netlist[i].b] = -1;
-			Yn[netlist[i].x][netlist[i].x] -= capacitor_resistance(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
-			Yn[netlist[i].x][*nv+1] += capacitor_current(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
+			nodal_matrix[netlist[i].a][netlist[i].x] = 1;
+			nodal_matrix[netlist[i].b][netlist[i].x] = -1;
+			nodal_matrix[netlist[i].x][netlist[i].a] = 1;
+			nodal_matrix[netlist[i].x][netlist[i].b] = -1;
+			nodal_matrix[netlist[i].x][netlist[i].x] -= capacitor_resistance(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
+			nodal_matrix[netlist[i].x][*nv+1] += capacitor_current(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
+		}
+		else if (tipo=='L')
+		{
+			nodal_matrix[netlist[i].a][netlist[i].x] = 1;
+			nodal_matrix[netlist[i].b][netlist[i].x] = -1;
+			nodal_matrix[netlist[i].x][netlist[i].a] = 1;
+			nodal_matrix[netlist[i].x][netlist[i].b] = -1;
+			nodal_matrix[netlist[i].x][netlist[i].x] = -inductor_resistance(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
+			nodal_matrix[netlist[i].x][*nv+1] = -inductor_voltage(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
 		}
 		else if (tipo == 'G') {
 			g = netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].c] += g;
-			Yn[netlist[i].b][netlist[i].d] += g;
-			Yn[netlist[i].a][netlist[i].d] -= g;
-			Yn[netlist[i].b][netlist[i].c] -= g;
+			nodal_matrix[netlist[i].a][netlist[i].c] += g;
+			nodal_matrix[netlist[i].b][netlist[i].d] += g;
+			nodal_matrix[netlist[i].a][netlist[i].d] -= g;
+			nodal_matrix[netlist[i].b][netlist[i].c] -= g;
 		}
 		else if (tipo == 'I') {
 			g = netlist[i].valor;
-			Yn[netlist[i].a][*nv+1] -= g;
-			Yn[netlist[i].b][*nv+1] += g;
+			nodal_matrix[netlist[i].a][*nv+1] -= g;
+			nodal_matrix[netlist[i].b][*nv+1] += g;
 		}
 		else if (tipo == 'V') {
-			Yn[netlist[i].a][netlist[i].x] += 1;
-			Yn[netlist[i].b][netlist[i].x] -= 1;
-			Yn[netlist[i].x][netlist[i].a] -= 1;
-			Yn[netlist[i].x][netlist[i].b] += 1;
-			Yn[netlist[i].x][*nv+1] -= netlist[i].valor;
+			nodal_matrix[netlist[i].a][netlist[i].x] += 1;
+			nodal_matrix[netlist[i].b][netlist[i].x] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].a] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].b] += 1;
+			nodal_matrix[netlist[i].x][*nv+1] -= netlist[i].valor;
 		}
 		else if (tipo == 'E') {
 			g = netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].x] += 1;
-			Yn[netlist[i].b][netlist[i].x] -= 1;
-			Yn[netlist[i].x][netlist[i].a] -= 1;
-			Yn[netlist[i].x][netlist[i].b] += 1;
-			Yn[netlist[i].x][netlist[i].c] += g;
-			Yn[netlist[i].x][netlist[i].d] -= g;
+			nodal_matrix[netlist[i].a][netlist[i].x] += 1;
+			nodal_matrix[netlist[i].b][netlist[i].x] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].a] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].b] += 1;
+			nodal_matrix[netlist[i].x][netlist[i].c] += g;
+			nodal_matrix[netlist[i].x][netlist[i].d] -= g;
 		}
 		else if (tipo == 'F') {
 			g = netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].x] += g;
-			Yn[netlist[i].b][netlist[i].x] -= g;
-			Yn[netlist[i].c][netlist[i].x] += 1;
-			Yn[netlist[i].d][netlist[i].x] -= 1;
-			Yn[netlist[i].x][netlist[i].c] -= 1;
-			Yn[netlist[i].x][netlist[i].d] += 1;
+			nodal_matrix[netlist[i].a][netlist[i].x] += g;
+			nodal_matrix[netlist[i].b][netlist[i].x] -= g;
+			nodal_matrix[netlist[i].c][netlist[i].x] += 1;
+			nodal_matrix[netlist[i].d][netlist[i].x] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].c] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].d] += 1;
 		}
 		else if (tipo == 'H') {
 			g = netlist[i].valor;
-			Yn[netlist[i].a][netlist[i].y] += 1;
-			Yn[netlist[i].b][netlist[i].y] -= 1;
-			Yn[netlist[i].c][netlist[i].x] += 1;
-			Yn[netlist[i].d][netlist[i].x] -= 1;
-			Yn[netlist[i].y][netlist[i].a] -= 1;
-			Yn[netlist[i].y][netlist[i].b] += 1;
-			Yn[netlist[i].x][netlist[i].c] -= 1;
-			Yn[netlist[i].x][netlist[i].d] += 1;
-			Yn[netlist[i].y][netlist[i].x] += g;
+			nodal_matrix[netlist[i].a][netlist[i].y] += 1;
+			nodal_matrix[netlist[i].b][netlist[i].y] -= 1;
+			nodal_matrix[netlist[i].c][netlist[i].x] += 1;
+			nodal_matrix[netlist[i].d][netlist[i].x] -= 1;
+			nodal_matrix[netlist[i].y][netlist[i].a] -= 1;
+			nodal_matrix[netlist[i].y][netlist[i].b] += 1;
+			nodal_matrix[netlist[i].x][netlist[i].c] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].d] += 1;
+			nodal_matrix[netlist[i].y][netlist[i].x] += g;
 		}
 		else if (tipo == 'O') {
-			Yn[netlist[i].a][netlist[i].x] += 1;
-			Yn[netlist[i].b][netlist[i].x] -= 1;
-			Yn[netlist[i].x][netlist[i].c] += 1;
-			Yn[netlist[i].x][netlist[i].d] -= 1;
+			nodal_matrix[netlist[i].a][netlist[i].x] += 1;
+			nodal_matrix[netlist[i].b][netlist[i].x] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].c] += 1;
+			nodal_matrix[netlist[i].x][netlist[i].d] -= 1;
 		}
 
 		if (debug) {
@@ -251,8 +261,8 @@ int build_nodal_system(int ne, int *nv, device netlist[], double Yn[][MAX_NOS+2]
 			printf("Sistema apos a estampa de %s\n", netlist[i].nome);
 			for (k=1; k <= *nv; k++) {
 				for (j=1; j <= *nv+1; j++)
-					if (Yn[k][j]!=0)
-						printf("%+3.1f ", Yn[k][j]);
+					if (nodal_matrix[k][j]!=0)
+						printf("%+3.1f ", nodal_matrix[k][j]);
 					else
 						printf(" ... ");
 				printf("\n");
@@ -285,3 +295,28 @@ double capacitor_current(device *elemento, double solucao_anterior[][MAX_NOS+2],
 		+ (solucao_anterior[elemento->a] - solucao_anterior[elemento->b]);
 }
 
+// Calcula resistencia do indutor
+double inductor_resistance(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto)
+{
+	if (t_atual == 0) {
+		// L/deltaT
+		return elemento->valor / (t_passo/DIVISOR_DE_PASSO);
+	}
+
+	// 2L/deltaT
+	return (2.0 * elemento->valor) / (t_passo/DIVISOR_DE_PASSO);
+}
+
+// Calcula tensao do indutor
+double inductor_voltage(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto)
+{
+	// Curto em t=0
+	if (t_atual == 0) {
+		return 0;
+	}
+
+	// corrente anterior * (2L/deltaT) + tensao anterior
+	// pag 96
+	return ((2.0 * elemento->valor) / (t_passo/passos_por_ponto)) * *(solucao_anterior[elemento->x])
+		+ (solucao_anterior[elemento->a] - solucao_anterior[elemento->b]);
+}
