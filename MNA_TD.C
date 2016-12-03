@@ -335,7 +335,8 @@ int main(void)
 				///////////////////////////////////////////////////////////////////////////
 				/* Monta sistema nodal */
 				///////////////////////////////////////////////////////////////////////////
-				frv = build_nodal_system(ne, &nv, netlist, solucao_atual, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
+				// Atenção: solucao_atual ainda contem solucão anterior - isso eh usado no C,L
+				frv = build_nodal_system(ne, &nv, netlist, solucao_anterior, solucao_atual, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
 				if (frv) {
 					printf("Não foi possível montar o sistema nodal.\n");
 					exit(IMPOSSIBLE_BUILD_NODAL_SYSTEM);

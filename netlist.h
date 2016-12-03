@@ -15,14 +15,18 @@ typedef struct device { /* Elemento do netlist */
 
 int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], device *current, int debug);
 
-int build_nodal_system(int ne, int *nv, device netlist[], double Yn[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto, int debug);
+int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterior[MAX_NOS+2], double nodal_matrix[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto, int debug);
 
-double capacitor_current(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
+double capacitor_current(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
 
-double capacitor_resistance(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
+double capacitor_resistance(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
 
-double inductor_resistance(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
+double inductor_resistance(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
 
-double inductor_voltage(device *elemento, double solucao_anterior[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
+double inductor_voltage(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
+
+double source_sin(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
+
+double source_pulse(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
 
 #endif
