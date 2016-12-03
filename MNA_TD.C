@@ -39,6 +39,7 @@ Os nos podem ser nomes
 #include <string.h> // strcpy strstr strlen
 #include <stdlib.h>
 #include <ctype.h> // toupper 
+#include <math.h> // fabs
 
 #include "defines.h"
 #include "utils.h"
@@ -54,6 +55,7 @@ typedef struct configuration { /* Parametros da analise */
 	int PRINT_RESUME;
 	int PRINT_SOLUTION;
 	int PRINT_ANALYSIS_DATA;
+	int newton_raphson;
 	int configured;
 	char tipo[MAX_NOME];
 	double t_atual;
@@ -70,7 +72,7 @@ int
 	ne, /* Elementos */
 	nv, /* Variaveis */
 	nn, /* Nos */
-	i,j,k;
+	i,j,k; // variaveis para iteracoes
 
 char
 /* Foram colocados limites nos formatos de leitura para alguma protecao
@@ -82,8 +84,8 @@ char
 	nc[MAX_NOME],
 	nd[MAX_NOME],
 	lista[MAX_NOS+1][MAX_NOME+2], // Lista com o numero do no e o nome (Tem que caber jx antes do nome)
-	txt[MAX_LINHA+1], // Variavel temporaria que sera usada para processar cada linha do netlist
-	*p;
+	txt[MAX_LINHA+1]; // Variavel temporaria que sera usada para processar cada linha do netlist
+
 FILE *arquivo;
 
 int main(void)
@@ -175,24 +177,29 @@ int main(void)
 				// Verificando
 				if ( strstr(config.tipo, "TRAP") == NULL ){
 					printf("Tipo de analise nao suportada (%s). Por favor, revise o arquivo.\n", config.tipo);
+					fclose(arquivo);
 					exit(INCORRECT_ANALYSIS_SETUP);
 				}
 				if ( config.t_final == 0 || config.t_final < config.t_passo ) {
 					printf("Tempo de simulação insuficiente (%f). Por favor, revise o arquivo.\n", config.t_final);
+					fclose(arquivo);
 					exit(INCORRECT_ANALYSIS_SETUP);
 				}
 				if ( config.t_passo <= 0 ) {
 					printf("Tempo de passo insuficiente (%f). Por favor, revise o arquivo.\n", config.t_passo);
+					fclose(arquivo);
 					exit(INCORRECT_ANALYSIS_SETUP);
 				}
 				if ( config.passos_por_ponto < 1 ) {
 					printf("Passos por ponto na tabela invalido (%f). Por favor, revise o arquivo.\n", config.passos_por_ponto);
+					fclose(arquivo);
 					exit(INCORRECT_ANALYSIS_SETUP);
 				}
 				config.configured = 1;
 			}
 		} else if (result != 0 && result != SPECIAL_LINE) {
 			printf("Erro no processamento do netlist. Por favor, revise o arquivo.\n");
+			fclose(arquivo);
 			exit(result);
 		}
 	}
@@ -205,6 +212,7 @@ int main(void)
 	}
 
 	/* Acrescenta variaveis de corrente acima dos nos, anotando no netlist */
+	// Colocando configuracoes de analise de acordo com os componentes
 	// nv = 0 - definido acima
 	nn = nv;
 	for (i=1; i <= ne; i++) {
@@ -235,6 +243,12 @@ int main(void)
 			strcpy(lista[nv], "jy");
 			strcat(lista[nv], netlist[i].nome);
 			netlist[i].y = nv;
+		}
+
+		if (tipo == 'D') {
+			config.newton_raphson = 1;
+		} else {
+			config.newton_raphson = 0;
 		}
 	}
 
@@ -278,68 +292,111 @@ int main(void)
 
 	// Marcando inicio
 	config.t_atual = 0;
-	double solucao_anterior[MAX_NOS+1][MAX_NOS+2];
+	double solucao_anterior[MAX_NOS+2];
 	double solucao_atual[MAX_NOS+1][MAX_NOS+2];
 
 	// inicializando listas
 	for (i=0; i <= MAX_NOS; i++) {
 		for (j=0; j <= MAX_NOS+1; j++) {
-			solucao_anterior[i][j] = 0;
+			solucao_anterior[j] = 0;
 			solucao_atual[i][j] = 0;
 		}
-
 	}
 
 	int printed_title; // controlando impressao da legenda dos resultados
 
-	while (config.t_atual < config.t_final) {
+	// loop de tempo
+	while (config.t_atual <= config.t_final) {
 
-		///////////////////////////////////////////////////////////////////////////
-		/* Monta sistema nodal */
-		///////////////////////////////////////////////////////////////////////////
-		frv = build_nodal_system(ne, &nv, netlist, solucao_atual, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
-		if (frv) {
-			printf("Não foi possível montar o sistema nodal.\n");
-			exit(IMPOSSIBLE_BUILD_NODAL_SYSTEM);
-		}
+		// loop de passos
+		int current_step;
+		for (current_step = 0; current_step < config.passos_por_ponto; current_step++) {
 
-		///////////////////////////////////////////////////////////////////////////
-		/* Resolve o sistema */
-		///////////////////////////////////////////////////////////////////////////
-		frv = resolversistema(solucao_atual, &nv);
-		if (frv) {
-			exit(frv);
-		}
+			int randomizations = 0;
+			int convergence = 1;
+			int tries = 0;
 
-		if (config.PRINT_FINAL_MATRIX) {
-			/* Opcional: Mostra o sistema resolvido */
-			printf("Sistema resolvido:\n");
-			for (i=1; i <= nv; i++) {
-				for (j=1; j<=nv+1; j++)
-					if (solucao_atual[i][j] != 0) printf("%+3.1f ", solucao_atual[i][j]);
-					else printf(" ... ");
-				printf("\n");
-			}
-		}
-
-		if (config.PRINT_SOLUTION) {
-			/* Mostra solucao */
-			if (printed_title != 1) {
-				printf("t\t");
-				strcpy(txt, "T");
-				for (i=1; i <= nv; i++) {
-					if (i == nn+1)
-						strcpy(txt, "I");
-					printf("%s\t", lista[i]);
+			while (convergence) {
+				// atingiu numero maximo de tentativas, vamos aleatorizar valores
+				if ( (tries == MAX_TRIES) && (randomizations < MAX_RANDOMIZATIONS) ) {
+					randomizations++;
+					tries = 0;
+					for (i = 1; i <= nv; i++) {
+						solucao_anterior[i] = (rand()%100) / 100.0;
+					}
 				}
-				printf("\n");
-				printed_title = 1;
+				else if (randomizations == MAX_RANDOMIZATIONS) {
+					printf("Os calculos nao convergem com %i aleatorizacoes (%i tentativas cada).\n", MAX_RANDOMIZATIONS, MAX_TRIES);
+					exit(EXCEEDED_MAX_RANDOMIZATIONS);
+				} else {
+					tries++;
+				}
+
+				///////////////////////////////////////////////////////////////////////////
+				/* Monta sistema nodal */
+				///////////////////////////////////////////////////////////////////////////
+				frv = build_nodal_system(ne, &nv, netlist, solucao_atual, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
+				if (frv) {
+					printf("Não foi possível montar o sistema nodal.\n");
+					exit(IMPOSSIBLE_BUILD_NODAL_SYSTEM);
+				}
+
+				///////////////////////////////////////////////////////////////////////////
+				/* Resolve o sistema */
+				///////////////////////////////////////////////////////////////////////////
+				frv = resolversistema(solucao_atual, &nv);
+				if (frv) {
+					exit(frv);
+				}
+				// controle de convergencia padrao
+				convergence = 0;
+
+				// Se tem diodo, vamos verificar o tempo de Newton-Raphson
+				if (config.newton_raphson) {
+					for(i = 1; i <= nv; i++) {
+						if( fabs(solucao_anterior[i] - solucao_atual[i][nv+1]) > MAX_ERROR ) {
+							convergence = 1;
+						}
+					}
+					tries++;
+				}
+
+				// Atualizando ultima solucao
+				for (i=1; i <= nv; i++) {
+					solucao_anterior[i] = solucao_atual[i][nv+1];
+				}
+
+				if (config.PRINT_FINAL_MATRIX) {
+					/* Opcional: Mostra o sistema resolvido */
+					printf("Sistema resolvido:\n");
+					for (i=1; i <= nv; i++) {
+						for (j=1; j<=nv+1; j++)
+							if (solucao_atual[i][j] != 0) printf("%+3.1f ", solucao_atual[i][j]);
+							else printf(" ... ");
+						printf("\n");
+					}
+				}
+
+				if (config.PRINT_SOLUTION) {
+					/* Mostra solucao */
+					if (printed_title != 1) {
+						printf("t\t");
+						strcpy(txt, "T");
+						for (i=1; i <= nv; i++) {
+							if (i == nn+1)
+								strcpy(txt, "I");
+							printf("%s\t", lista[i]);
+						}
+						printf("\n");
+						printed_title = 1;
+					}
+					printf("%g\t", config.t_atual);
+					for (i=1; i <= nv; i++) {
+						printf("%g\t", solucao_atual[i][nv+1]);
+					}
+					printf("\n");
+				}
 			}
-			printf("%g\t", config.t_atual);
-			for (i=1; i <= nv; i++) {
-				printf("%g\t", solucao_atual[i][nv+1]);
-			}
-			printf("\n");
 		}
 		config.t_atual += config.t_passo/config.passos_por_ponto;
 	}

@@ -7,6 +7,9 @@
 #define MIN_PASSO 10e9 // usado para calcular a corrente do capacitor e a tensao do indutor em t=0
 #define MIN_R 10e-9
 #define MAX_R 10e9
+#define MAX_TRIES 10
+#define MAX_RANDOMIZATIONS 10
+#define MAX_ERROR 1e-6
 #define DIVISOR_DE_PASSO 10e9
 #define DEBUG
 
@@ -37,6 +40,7 @@
 
 #define RESOLVE_ANALISYS "%lg%lg%s%lg"
 
+
 #define EXCEEDED_MAX_ELEMENTS 1
 #define EXCEEDED_MAX_NOME 2
 #define EXCEEDED_MAX_NOS 3
@@ -46,5 +50,5 @@
 #define SPECIAL_LINE 7
 #define IMPOSSIBLE_BUILD_NODAL_SYSTEM 8
 #define SINGULAR_SYSTEM 9
-
+#define EXCEEDED_MAX_RANDOMIZATIONS 10
 
