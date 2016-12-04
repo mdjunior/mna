@@ -221,8 +221,8 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 			else { // default eh fonte DC
 				g = netlist[i].valor;
 			}
-			nodal_matrix[netlist[i].a][*nv+1] -= g;
-			nodal_matrix[netlist[i].b][*nv+1] += g;
+			nodal_matrix[netlist[i].a][*nv+1] -= -g;
+			nodal_matrix[netlist[i].b][*nv+1] += -g;
 		}
 		else if (tipo == 'V') {
 			double g = 0;
@@ -240,7 +240,7 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 			nodal_matrix[netlist[i].b][netlist[i].x] -= 1;
 			nodal_matrix[netlist[i].x][netlist[i].a] -= 1;
 			nodal_matrix[netlist[i].x][netlist[i].b] += 1;
-			nodal_matrix[netlist[i].x][*nv+1] = g;
+			nodal_matrix[netlist[i].x][*nv+1] = -g;
 		}
 		else if (tipo == 'E') {
 			double g = netlist[i].valor;
@@ -322,25 +322,25 @@ double inductor_resistance(device *elemento, double solucao_anterior[MAX_NOS+2],
 {
 	if (t_atual == 0) {
 		// L/deltaT
-		return elemento->valor / (t_passo/DIVISOR_DE_PASSO);
+		return ( elemento->valor / (t_passo/DIVISOR_DE_PASSO) );
 	}
 
 	// 2L/deltaT
-	return (2.0 * elemento->valor) / (t_passo/DIVISOR_DE_PASSO);
+	return ( (2.0 * elemento->valor) / (t_passo/DIVISOR_DE_PASSO) );
 }
 
 // Calcula tensao do indutor
 double inductor_voltage(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto)
 {
 	// Curto em t=0
-	if (t_atual == 0) {
-		return 0;
-	}
+	//if (t_atual == 0) {
+	//	return 0;
+	//}
 
 	// corrente anterior * (2L/deltaT) + tensao anterior
 	// pag 96
-	return ((2.0 * elemento->valor) / (t_passo/passos_por_ponto)) * solucao_anterior[elemento->x]
-		+ (solucao_anterior[elemento->a] - solucao_anterior[elemento->b]);
+	return ( ((2.0 * elemento->valor) / (t_passo/passos_por_ponto)) * solucao_anterior[elemento->x]
+		+ (solucao_anterior[elemento->a] - solucao_anterior[elemento->b]) );
 }
 
 // Calcula saida da fonte senoidal
