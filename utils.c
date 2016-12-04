@@ -2,9 +2,10 @@
 #include "defines.h"
 
 #include <cstdlib>
-#include <string.h> // strcpy strstr
+#include <string.h> // strcpy strstr sprintf
 #include <stdio.h> // printf sscanf
 #include <math.h> // fabs
+#include <time.h> // time gmtime strftime
 
 /*
 *  Funcao que apaga a tela para compatibilidade Windows/Linus
@@ -92,5 +93,17 @@ int resolversistema(double Yn[][MAX_NOS+2], int *nv)
 	return 0;
 }
 
+int create_filename(char filename[MAX_FILENAME], char filename_result[MAX_FILENAME+15])
+{
+	time_t seconds;
 
+	seconds = time(0);
+	snprintf(filename_result, MAX_FILENAME+15, "%s.%ld.tsv", filename, seconds);
+
+	return 0;
+
+	//time = gmtime(&now);
+	// strftime(*filename_result, MAX_FILENAME, "%Y_%m_%d_%H_%M_%S", time);
+	// printf("%s+%s", filename, *filename_result);
+}
 

@@ -91,6 +91,12 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 					&current->amplitude1,&current->amplitude2,&current->atraso,&current->t_subida,
 					&current->t_descida,&current->t_ligada,&current->periodo,&current->ciclos);
 				current->valor = current->amplitude1;
+
+				if (current->t_subida + current->t_ligada + current->t_descida > current->periodo ) {
+					printf("Os tempos (subida+ligada+descida) nao correspondem ao periodo configurado (%g > %g s). Por favor, revise a configuracao da fonte.\n",
+						current->t_subida + current->t_ligada + current->t_descida, current->periodo);
+					return(INVALID_PULSE_SOURCE);
+				}
 			}
 
 		}

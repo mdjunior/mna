@@ -2,7 +2,7 @@
 #define MAX_NOME 11 // used in utils.h
 #define MAX_ELEM 50
 #define MAX_NOS 50 // used in utils.h
-#define MAX_FILENAME 50
+#define MAX_FILENAME 80
 #define TOLG 1e-9
 #define MIN_PASSO 10e9 // usado para calcular a corrente do capacitor e a tensao do indutor em t=0
 #define MIN_R 10e-9
@@ -51,4 +51,5 @@
 #define IMPOSSIBLE_BUILD_NODAL_SYSTEM 8
 #define SINGULAR_SYSTEM 9
 #define EXCEEDED_MAX_RANDOMIZATIONS 10
-
+#define OPEN_OUTPUT_FILE_ERROR 11
+#define INVALID_PULSE_SOURCE 12

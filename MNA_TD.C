@@ -1,23 +1,21 @@
 /*
-Programa de demonstracao de analise nodal modificada
-Por Antonio Carlos M. de Queiroz acmq@coe.ufrj.br
-Versao 1.0 - 6/9/2000
-Versao 1.0a - 8/9/2000 Ignora comentarios
-Versao 1.0b - 15/9/2000 Aumentado Yn, retirado Js
-Versao 1.0c - 19/2/2001 Mais comentarios
-Versao 1.0d - 16/2/2003 Tratamento correto de nomes em minusculas
-Versao 1.0e - 21/8/2008 Estampas sempre somam. Ignora a primeira linha
-Versao 1.0f - 21/6/2009 Corrigidos limites de alocacao de Yn
-Versao 1.0g - 15/10/2009 Le as linhas inteiras
-Versao 1.0h - 18/6/2011 Estampas correspondendo a modelos
-Versao 1.0i - 03/11/2013 Correcoes em *p e saida com sistema singular.
-Versao 1.0j - 26/11/2015 Evita operacoes com zero.
+Programa de analise circuitos no dominio do tempo, contendo elementos lineares
+ e nao lineares, usando analise nodal modificada e o metodo dos trapezios
+ junto com o metodo de Newton-Raphson.
+
+ Por Manoel Domingues Junior - mdjunior@ufrj.br
+
+Baseado no programa de demonstracao de analise nodal modificada (por Antonio
+ Carlos M. de Queiroz acmq@coe.ufrj.br) versao 1.0j disponivel em:
+ http://www.coe.ufrj.br/~acmq/cursos/mna1.zip
 */
 
 /*
 Elementos aceitos e linhas do netlist:
 
 Resistor:				R<nome> <no+> <no-> <resistencia>
+Indutor:				L<nome> <no1> <no2> <indutancia>
+Capacitor:				C<nome> <no1> <no2> <capacitancia>
 Fonte I:				I<nome> <io+> <io-> <corrente>
 Fonte V:				V<nome> <vo+> <vo-> <tensao>
 
@@ -27,6 +25,8 @@ VCCS:					G<nome> <io+> <io-> <vi+> <vi-> <transcondutancia>
 CCVS:					H<nome> <vo+> <vo-> <ii+> <ii-> <transresistencia>
 
 Amp. op.:				O<nome> <vo1> <vo2> <vi1> <vi2>
+
+Transformador ideal:	K<nome> <noa> <nob> <noc> <nod> <n>
 
 As fontes F e H tem o ramo de entrada em curto
 O amplificador operacional ideal tem a saida suspensa
@@ -77,7 +77,7 @@ int
 char
 /* Foram colocados limites nos formatos de leitura para alguma protecao
 	 contra excesso de caracteres nestas variaveis */
-	nomearquivo[MAX_LINHA+1],
+	nomearquivo[MAX_FILENAME],
 	tipo,
 	na[MAX_NOME],
 	nb[MAX_NOME],
@@ -197,7 +197,8 @@ int main(void)
 				}
 				config.configured = 1;
 			}
-		} else if (result != 0 && result != SPECIAL_LINE) {
+		}
+		if (result != 0 && result != SPECIAL_LINE) {
 			printf("Erro no processamento do netlist. Por favor, revise o arquivo.\n");
 			fclose(arquivo);
 			exit(result);
@@ -290,6 +291,18 @@ int main(void)
 		printf("O circuito tem %d nos, %d variaveis e %d elementos\n",nn,nv,ne);
 	}
 
+	// Preparando arquivo de resultado
+	char arquivo_saida[MAX_FILENAME+15];
+	frv = create_filename(nomearquivo,arquivo_saida);
+	FILE *arquivo_saida_handler;
+	arquivo_saida_handler = fopen(arquivo_saida, "w");
+	if (arquivo_saida_handler == NULL) {
+		printf("Nao foi possivel abrir o arquivo: %s\n", arquivo_saida);
+		exit(OPEN_OUTPUT_FILE_ERROR);
+	} else {
+		printf("Dados sendo armazenados em: %s\n",arquivo_saida);
+	}
+
 	// Marcando inicio
 	config.t_atual = 0;
 	double solucao_anterior[MAX_NOS+2];
@@ -378,29 +391,35 @@ int main(void)
 					}
 				}
 
-				if (config.PRINT_SOLUTION) {
-					/* Mostra solucao */
-					if (printed_title != 1) {
-						printf("t\t");
-						strcpy(txt, "T");
-						for (i=1; i <= nv; i++) {
-							if (i == nn+1)
-								strcpy(txt, "I");
-							printf("%s\t", lista[i]);
-						}
-						printf("\n");
-						printed_title = 1;
-					}
-					printf("%g\t", config.t_atual);
+				// Salvando solucao no arquivo
+				if (printed_title != 1) {
+					fprintf(arquivo_saida_handler, "t\t");
+					if (config.PRINT_SOLUTION) printf("t\t");
+					strcpy(txt, "T");
 					for (i=1; i <= nv; i++) {
-						printf("%g\t", solucao_atual[i][nv+1]);
+						if (i == nn+1)
+							strcpy(txt, "I");
+						fprintf(arquivo_saida_handler, "%s\t", lista[i]);
+						if (config.PRINT_SOLUTION) printf("%s\t", lista[i]);
 					}
-					printf("\n");
+					fprintf(arquivo_saida_handler, "\n");
+					if (config.PRINT_SOLUTION) printf("\n");
+					printed_title = 1;
 				}
+				fprintf(arquivo_saida_handler, "%g\t", config.t_atual);
+				if (config.PRINT_SOLUTION) printf("%g\t", config.t_atual);
+				for (i=1; i <= nv; i++) {
+					fprintf(arquivo_saida_handler, "%g\t", solucao_atual[i][nv+1]);
+					if (config.PRINT_SOLUTION) printf("%g\t", solucao_atual[i][nv+1]);
+				}
+				fprintf(arquivo_saida_handler, "\n");
+				if (config.PRINT_SOLUTION) printf("\n");
+
 			}
 		}
 		config.t_atual += config.t_passo/config.passos_por_ponto;
 	}
+	fclose(arquivo_saida_handler);
 	return 0;
 }
 
