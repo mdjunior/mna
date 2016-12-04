@@ -277,6 +277,18 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 			nodal_matrix[netlist[i].x][netlist[i].c] += 1;
 			nodal_matrix[netlist[i].x][netlist[i].d] -= 1;
 		}
+		else if (tipo == 'K') {
+			// pag 55 e verificar pag 99
+			double g = netlist[i].valor;
+			nodal_matrix[netlist[i].a][netlist[i].x] -= g;
+			nodal_matrix[netlist[i].b][netlist[i].x] += g;
+			nodal_matrix[netlist[i].c][netlist[i].x] += 1;
+			nodal_matrix[netlist[i].d][netlist[i].x] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].a] += g;
+			nodal_matrix[netlist[i].x][netlist[i].b] -= g;
+			nodal_matrix[netlist[i].x][netlist[i].c] -= 1;
+			nodal_matrix[netlist[i].x][netlist[i].d] += 1;
+		}
 
 		if (debug) {
 			/* Opcional: Mostra o sistema apos a montagem da estampa */
