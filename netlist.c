@@ -333,9 +333,9 @@ double inductor_resistance(device *elemento, double solucao_anterior[MAX_NOS+2],
 double inductor_voltage(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto)
 {
 	// Curto em t=0
-	//if (t_atual == 0) {
-	//	return 0;
-	//}
+	if (t_atual == 0) {
+		return 0;
+	}
 
 	// corrente anterior * (2L/deltaT) + tensao anterior
 	// pag 96
