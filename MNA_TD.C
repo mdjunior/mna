@@ -306,14 +306,9 @@ int main(void)
 	// Marcando inicio
 	config.t_atual = 0;
 	double solucao_anterior[MAX_NOS+2];
-	double solucao_atual[MAX_NOS+1][MAX_NOS+2];
-
-	// inicializando listas
-	for (i=0; i <= MAX_NOS; i++) {
-		for (j=0; j <= MAX_NOS+1; j++) {
-			solucao_anterior[j] = 0;
-			solucao_atual[i][j] = 0;
-		}
+	// inicializando solucao_anterior
+	for (j=0; j <= MAX_NOS+1; j++) {
+		solucao_anterior[j] = 0;
 	}
 
 	int printed_title; // controlando impressao da legenda dos resultados
@@ -348,7 +343,14 @@ int main(void)
 				///////////////////////////////////////////////////////////////////////////
 				/* Monta sistema nodal */
 				///////////////////////////////////////////////////////////////////////////
-				// Atenção: solucao_atual ainda contem solucão anterior - isso eh usado no C,L
+				double solucao_atual[MAX_NOS+1][MAX_NOS+2];
+
+				// inicializando solucao_atual
+				for (i=0; i <= MAX_NOS; i++) {
+					for (j=0; j <= MAX_NOS+1; j++) {
+						solucao_atual[i][j] = 0;
+					}
+				}
 				frv = build_nodal_system(ne, &nv, netlist, solucao_anterior, solucao_atual, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
 				if (frv) {
 					printf("Não foi possível montar o sistema nodal.\n");
