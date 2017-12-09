@@ -10,6 +10,8 @@ O programa suporta os seguintes elementos:
 - As quatro fontes controladas
 - Amplificadores operacionais ideais, com 4 terminais
 - Transformadores ideais
+- Resistores lineares por partes
+- Chave resistiva
 - Diodos ideais (TODO)
 - Chaves ideais (TODO)
 
