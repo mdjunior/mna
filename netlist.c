@@ -103,7 +103,7 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 
 		if (debug) printf("%s %s %s %g %c\n", current->nome, na, nb, current->valor, current->subtipo);
 	}
-	else if (tipo == 'G' || tipo == 'E' || tipo == 'F' || tipo == 'H' || tipo == '$' || tipo == 'K') {
+	else if (tipo == 'G' || tipo == 'E' || tipo == 'F' || tipo == 'H' || tipo == 'K') {
 		frv = sscanf(p, RESOLVE_FOUR_TERMINALS(MAX_NOME), na, nb, nc, nd, &current->valor);
 		// Verificando se os valores foram atribuidos e estavam dentro dos limites
 		if (frv != 5 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0' || nc[MAX_NOME-1] != '\0' || nd[MAX_NOME-1] != '\0' ) {
@@ -142,6 +142,21 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 		if (debug) printf("%s %s %s\n", current->nome, na, nb);
 		current->a = numero(na, lista_int, nv);
 		current->b = numero(nb, lista_int, nv);
+	}
+	// $0300 1 2 1 0 1 0.0001 0.5
+	else if (tipo == '$') {
+		frv = sscanf(p, RESOLVE_SWITCH(MAX_NOME), na, nb, nc, nd, &current->gOn, &current->gOff, &current->Vref);
+		// Verificando se os valores foram atribuidos e estavam dentro dos limites
+		if (frv != 7 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0' || nc[MAX_NOME-1] != '\0' || nd[MAX_NOME-1] != '\0' ) {
+			printf("Nao foi possivel ler elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
+			return(EXCEEDED_MAX_NOME);
+		}
+
+		if (debug) printf("%s %s %s %s %s %f %f %f\n", current->nome, na, nb, nc, nd, current->gOn, current->gOff, current->Vref);
+		current->a = numero(na, lista_int, nv);
+		current->b = numero(nb, lista_int, nv);
+		current->c = numero(nc, lista_int, nv);
+		current->d = numero(nd, lista_int, nv);
 	}
 	else if (tipo == '*' || tipo == '.') {
 		return(SPECIAL_LINE);
@@ -298,6 +313,13 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 			nodal_matrix[netlist[i].x][netlist[i].c] -= 1;
 			nodal_matrix[netlist[i].x][netlist[i].d] += 1;
 		}
+		else if (tipo=='$') {
+			double g = switch_conductance(&netlist[i], solucao_anterior);
+			nodal_matrix[netlist[i].a][netlist[i].a] += g;
+			nodal_matrix[netlist[i].b][netlist[i].b] += g;
+			nodal_matrix[netlist[i].a][netlist[i].b] -= g;
+			nodal_matrix[netlist[i].b][netlist[i].a] -= g;
+		}
 
 		if (debug) {
 			/* Opcional: Mostra o sistema apos a montagem da estampa */
@@ -419,4 +441,13 @@ double source_pulse(device *elemento, double solucao_anterior[MAX_NOS+2], double
 	}
 	// Nao eh um ciclo de atividade ou ja passou do tempo de descida
 	return elemento->amplitude1;
+}
+
+// Calcula condutancia da chave resistiva
+double switch_conductance(device *elemento, double solucao_anterior[MAX_NOS+2]) {
+	double v = solucao_anterior[elemento->c] - solucao_anterior[elemento->d];
+	if (elemento->Vref <= v) {
+		return elemento->gOff;
+	}
+	return elemento->gOn;
 }

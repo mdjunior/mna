@@ -38,6 +38,9 @@
 #define FORMAT_DIODE(S) "%" #S "s%" #S "s"
 #define RESOLVE_DIODE(S) FORMAT_DIODE(S)
 
+#define FORMAT_SWITCH(S) "%" #S "s%" #S "s%" #S "s%" #S "s %lg %lg %lg"
+#define RESOLVE_SWITCH(S) FORMAT_SWITCH(S)
+
 #define RESOLVE_ANALISYS "%lg%lg%s%lg"
 
 
