@@ -12,6 +12,7 @@ typedef struct device { /* Elemento do netlist */
 	double nv_continuo, amplitude, frequencia, amortecimento, defasagem; // SIN
 	double amplitude1, amplitude2, t_subida, t_descida, t_ligada, periodo; // PULSE
 	double gOn, gOff, Vref; // SWITCH
+	double vj[MAX_N_POINTS][2]; // resistor nao-linear
 } device;
 
 int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], device *current, int debug);
@@ -31,5 +32,9 @@ double source_sin(device *elemento, double solucao_anterior[MAX_NOS+2], double t
 double source_pulse(device *elemento, double solucao_anterior[MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto);
 
 double switch_conductance(device *elemento, double solucao_anterior[MAX_NOS+2]);
+
+double n_conductance(device *elemento, double solucao_anterior[MAX_NOS+2]);
+
+double n_current(device *elemento, double solucao_anterior[MAX_NOS+2]);
 
 #endif

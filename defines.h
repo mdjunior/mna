@@ -3,6 +3,7 @@
 #define MAX_ELEM 50
 #define MAX_NOS 50 // used in utils.h
 #define MAX_FILENAME 80
+#define MAX_N_POINTS 4 // numero maximo de pontos do resistor linear por partes
 #define TOLG 1e-9
 #define MIN_PASSO 10e9 // usado para calcular a corrente do capacitor e a tensao do indutor em t=0
 #define MIN_R 10e-9
@@ -40,6 +41,9 @@
 
 #define FORMAT_SWITCH(S) "%" #S "s%" #S "s%" #S "s%" #S "s %lg %lg %lg"
 #define RESOLVE_SWITCH(S) FORMAT_SWITCH(S)
+
+#define FORMAT_NON_LINEAR_RESISTOR(S) "%" #S "s%" #S "s %lg %lg %lg %lg %lg %lg %lg %lg"
+#define RESOLVE_NON_LINEAR_RESISTOR(S) FORMAT_NON_LINEAR_RESISTOR(S)
 
 #define RESOLVE_ANALISYS "%lg%lg%s%lg"
 

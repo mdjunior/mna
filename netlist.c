@@ -158,6 +158,25 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 		current->c = numero(nc, lista_int, nv);
 		current->d = numero(nd, lista_int, nv);
 	}
+	// N0300 1 2 -10 0.001 0 0 0.5 0.5 1 0.5
+	else if (tipo=='N')
+	{
+		frv = sscanf(p, RESOLVE_NON_LINEAR_RESISTOR(MAX_NOME), na, nb,
+		// vj[0][0] = tensao, vj[0][1] = corrente
+			&current->vj[0][0], &current->vj[0][1],
+			&current->vj[1][0], &current->vj[1][1],
+			&current->vj[2][0], &current->vj[2][1],
+			&current->vj[3][0], &current->vj[3][1]
+		);
+		// Verificando se os valores foram atribuidos e estavam dentro dos limites
+		if (frv != 10 || na[MAX_NOME-1] != '\0' || nb[MAX_NOME-1] != '\0' ) {
+			printf("Nao foi possivel ler elemento da %d linha. %d caracteres de tamanho maximo.\n", ne, MAX_NOME);
+			return(EXCEEDED_MAX_NOME);
+		}
+
+		current->a = numero(na, lista_int, nv);
+		current->b = numero(nb, lista_int, nv);
+	}
 	else if (tipo == '*' || tipo == '.') {
 		return(SPECIAL_LINE);
 	}
@@ -320,6 +339,16 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 			nodal_matrix[netlist[i].a][netlist[i].b] -= g;
 			nodal_matrix[netlist[i].b][netlist[i].a] -= g;
 		}
+		else if (tipo == 'N') {
+            double g = n_conductance(&netlist[i], solucao_anterior);
+            nodal_matrix[netlist[i].a][netlist[i].a] += g;
+            nodal_matrix[netlist[i].b][netlist[i].b] += g;
+            nodal_matrix[netlist[i].a][netlist[i].b] -= g;
+            nodal_matrix[netlist[i].b][netlist[i].a] -= g;
+            double j = n_current(&netlist[i], solucao_anterior);
+            nodal_matrix[netlist[i].a][*nv+1] -= j;
+            nodal_matrix[netlist[i].b][*nv+1] += j;
+        }
 
 		if (debug) {
 			/* Opcional: Mostra o sistema apos a montagem da estampa */
@@ -450,4 +479,58 @@ double switch_conductance(device *elemento, double solucao_anterior[MAX_NOS+2]) 
 		return elemento->gOff;
 	}
 	return elemento->gOn;
+}
+
+// Calcula condutancia da resistencia não linear
+double n_conductance(device *elemento, double solucao_anterior[MAX_NOS+2]) {
+    double v = solucao_anterior[elemento->a] - solucao_anterior[elemento->b];
+    double v1 = elemento->vj[0][0],
+           v2 = elemento->vj[1][0],
+           v3 = elemento->vj[2][0],
+           v4 = elemento->vj[3][0],
+           j1 = elemento->vj[0][1],
+           j2 = elemento->vj[1][1],
+           j3 = elemento->vj[2][1],
+           j4 = elemento->vj[3][1];
+
+	// Determinando região da curva onde a tensao está
+	// A primeira região é entre v1 e v2 (elas estão na ordem)
+    if (v < v2) {
+        return (j2-j1)/(v2-v1);
+	}
+	// Segunda região é entre v2 e v3
+	else if (v >= v2 && v < v3 ) {
+        return (j3-j2)/(v3-v2);
+    }
+	// Terceira e última região
+	//else if ( v > v3 ) {
+        return (j4-j3)/(v4-v3);
+    //}
+}
+
+// Calcula corrente da resistencia não linear
+double n_current(device *elemento, double solucao_anterior[MAX_NOS+2]) {
+	double v = solucao_anterior[elemento->a] - solucao_anterior[elemento->b];
+    double v1 = elemento->vj[0][0],
+           v2 = elemento->vj[1][0],
+           v3 = elemento->vj[2][0],
+           v4 = elemento->vj[3][0],
+           j1 = elemento->vj[0][1],
+           j2 = elemento->vj[1][1],
+           j3 = elemento->vj[2][1],
+           j4 = elemento->vj[3][1];
+
+	// Determinando região da curva onde a tensao está
+	// A primeira região é entre v1 e v2 (elas estão na ordem)
+    if(v < v2) {
+        return ( j2 - v2*((j2-j1)/(v2-v1)) );
+    }
+	// Segunda região é entre v2 e v3
+    else if (v >= v2 && v < v3 ) {
+        return ( j3 - v3*((j3-j2)/(v3-v2)) );
+    }
+	// Terceira e última região
+	//else if ( v > v3) {
+        return ( j4 - v4*((j4-j3)/(v4-v3)) );
+    //}
 }
