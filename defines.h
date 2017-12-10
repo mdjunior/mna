@@ -12,6 +12,10 @@
 #define MAX_RANDOMIZATIONS 10
 #define MAX_ERROR 1e-6
 #define DIVISOR_DE_PASSO 10e9
+#define GMIN_MAX 1.1
+#define GMIN_MIN 1E-10
+#define GMIN_FACTOR 10
+#define GMIN_FACTOR_MIN 1.1
 #define DEBUG
 
 // defines para sscanf

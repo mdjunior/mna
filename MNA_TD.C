@@ -33,7 +33,7 @@ O amplificador operacional ideal tem a saida suspensa
 Os nos podem ser nomes
 */
 
-#define versao "1.0j - 26/11/2015"
+#define versao "1.1a - 09/12/2017"
 #include <stdio.h> // printf sscanf
 #include <cstdlib>
 #include <string.h> // strcpy strstr strlen
@@ -55,13 +55,21 @@ typedef struct configuration { /* Parametros da analise */
 	int PRINT_RESUME;
 	int PRINT_SOLUTION;
 	int PRINT_ANALYSIS_DATA;
+	int PRINT_GMIN_DATA;
 	int newton_raphson;
 	int configured;
+	int gmin_enabled;
 	char tipo[MAX_NOME];
 	double t_atual;
 	double t_final;
 	double t_passo;
 	double passos_por_ponto;
+	double gmin_value;
+	double gmin_last_value;
+	double gmin_min;
+	double gmin_max;
+	double gmin_factor;
+	double gmin_factor_min;
 } configuration;
 
 device netlist[MAX_ELEM]; /* Netlist - elemento vem do netlist.h */
@@ -94,7 +102,8 @@ int main(void)
 
 	clear_screen();
 	printf("Programa demonstrativo de analise nodal modificada\n");
-	printf("Por Antonio Carlos M. de Queiroz - acmq@coe.ufrj.br\n");
+	printf("Originalmente por Antonio Carlos M. de Queiroz - acmq@coe.ufrj.br\n");
+	printf("Adaptado por Manoel Domingues Junior - mdjunior@ufrj.br\n");
 	printf("Versao %s\n", versao);
 
 	/* Leitura do netlist */
@@ -114,6 +123,14 @@ int main(void)
 			}
 		}
 	}
+
+	// Definindo paramentros do GminStep (serão usados em alguns elementos do netlist)
+	config.gmin_enabled = 0;
+	config.gmin_value = 0;
+	config.gmin_factor = GMIN_FACTOR;
+	config.gmin_max = GMIN_MAX;
+	config.gmin_min = GMIN_MIN;
+	config.gmin_factor_min = GMIN_FACTOR_MIN;
 
 	printf("Arquivo do netlist aberto com sucesso.\n");
 
@@ -164,6 +181,9 @@ int main(void)
 					}
 					if ( strstr(txt, "PRINT_ANALYSIS_DATA") != NULL ){
 						config.PRINT_ANALYSIS_DATA = 1;
+					}
+					if ( strstr(txt, "PRINT_GMIN_DATA") != NULL ){
+						config.PRINT_GMIN_DATA = 1;
 					}
 				}
 			}
@@ -335,7 +355,12 @@ int main(void)
 				}
 				else if (randomizations == MAX_RANDOMIZATIONS) {
 					printf("Os calculos nao convergem com %i aleatorizacoes (%i tentativas cada).\n", MAX_RANDOMIZATIONS, MAX_TRIES);
-					exit(EXCEEDED_MAX_RANDOMIZATIONS);
+					printf("Ativando Gmin step\n");
+					config.gmin_enabled = 1;
+					config.gmin_last_value = config.gmin_value;
+					config.gmin_value = config.gmin_max;
+
+					//exit(EXCEEDED_MAX_RANDOMIZATIONS);
 				} else {
 					tries++;
 				}
@@ -351,7 +376,7 @@ int main(void)
 						solucao_atual[i][j] = 0;
 					}
 				}
-				frv = build_nodal_system(ne, &nv, netlist, solucao_anterior, solucao_atual, config.t_passo, config.t_atual, config.passos_por_ponto, config.PRINT_INTERMEDIATE_MATRIX);
+				frv = build_nodal_system(ne, &nv, netlist, solucao_anterior, solucao_atual, config.t_passo, config.t_atual, config.passos_por_ponto, config.gmin_value, config.PRINT_INTERMEDIATE_MATRIX);
 				if (frv) {
 					printf("Não foi possível montar o sistema nodal.\n");
 					exit(IMPOSSIBLE_BUILD_NODAL_SYSTEM);
@@ -376,6 +401,49 @@ int main(void)
 					}
 					tries++;
 				}
+
+				// Verificando erro antes de atualizar solução
+                for (int cont = 1; cont <= nv; cont++ ) {
+                    double error = fabs( solucao_atual[i][nv+1] - solucao_anterior[cont] );
+                    if (error > MAX_ERROR) {
+                        if ( config.gmin_enabled ) {
+
+							if (config.PRINT_GMIN_DATA) {
+								printf("Fator: %g, Fator Mínimo: %g\n", config.gmin_factor, config.gmin_factor_min);
+							}
+
+                            if (config.gmin_factor < config.gmin_factor_min) {
+                                printf("Os calculos nao convergiram com fator %g. Diminua o valor mínino no defines.h em GMIN_FACTOR_MIN.\n",config.gmin_factor);
+                                exit(EXCEEDED_MAX_RANDOMIZATIONS);
+                            }
+                            else {
+								config.gmin_value = config.gmin_last_value;
+								config.gmin_factor = sqrt(config.gmin_factor);
+								config.gmin_value = config.gmin_value/config.gmin_factor;
+                            }
+                        } else {
+                            convergence = 1;
+                            tries++;
+							// Atualizando ultima solucao
+                            for (cont=1; cont<=nv; cont++) {
+                                solucao_anterior[i] = solucao_atual[i][nv+1];
+                            }
+                        }
+			        } else {
+                        if (config.gmin_enabled) {
+                            if(config.gmin_value <= config.gmin_min) {
+                                convergence = 0;
+                            } else {
+                                config.gmin_last_value = config.gmin_value;
+                                config.gmin_value = config.gmin_value/config.gmin_factor;
+                                tries = 0;
+                                randomizations = 0;
+                            }
+				        } else {
+                            convergence = 0;
+                        }
+			        }
+		        }
 
 				// Atualizando ultima solucao
 				for (i=1; i <= nv; i++) {

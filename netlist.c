@@ -189,7 +189,7 @@ int process_device(char txt[], int ne, int *nv, char lista_int[][MAX_NOME+2], de
 }
 
 
-int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterior[MAX_NOS+2], double nodal_matrix[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto, int debug)
+int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterior[MAX_NOS+2], double nodal_matrix[][MAX_NOS+2], double t_passo, double t_atual, double passos_por_ponto, double gmin_value, int debug)
 {
 	int i, j, k;
 	char tipo;
@@ -334,17 +334,17 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 		}
 		else if (tipo=='$') {
 			double g = switch_conductance(&netlist[i], solucao_anterior);
-			nodal_matrix[netlist[i].a][netlist[i].a] += g;
-			nodal_matrix[netlist[i].b][netlist[i].b] += g;
-			nodal_matrix[netlist[i].a][netlist[i].b] -= g;
-			nodal_matrix[netlist[i].b][netlist[i].a] -= g;
+			nodal_matrix[netlist[i].a][netlist[i].a] += g + gmin_value;
+			nodal_matrix[netlist[i].b][netlist[i].b] += g + gmin_value;
+			nodal_matrix[netlist[i].a][netlist[i].b] -= g + gmin_value;
+			nodal_matrix[netlist[i].b][netlist[i].a] -= g + gmin_value;
 		}
 		else if (tipo == 'N') {
             double g = n_conductance(&netlist[i], solucao_anterior);
-            nodal_matrix[netlist[i].a][netlist[i].a] += g;
-            nodal_matrix[netlist[i].b][netlist[i].b] += g;
-            nodal_matrix[netlist[i].a][netlist[i].b] -= g;
-            nodal_matrix[netlist[i].b][netlist[i].a] -= g;
+            nodal_matrix[netlist[i].a][netlist[i].a] += g + gmin_value;
+            nodal_matrix[netlist[i].b][netlist[i].b] += g + gmin_value;
+            nodal_matrix[netlist[i].a][netlist[i].b] -= g + gmin_value;
+            nodal_matrix[netlist[i].b][netlist[i].a] -= g + gmin_value;
             double j = n_current(&netlist[i], solucao_anterior);
             nodal_matrix[netlist[i].a][*nv+1] -= j;
             nodal_matrix[netlist[i].b][*nv+1] += j;
