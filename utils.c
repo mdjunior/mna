@@ -77,10 +77,10 @@ int resolversistema(double Yn[][MAX_NOS+2], int *nv)
 			}
 		}
 		if (fabs(t) < TOLG) {
-			printf("Sistema singular\n");
+			printf("Sistema singular: %g\n", fabs(t));
 			return(SINGULAR_SYSTEM);
 		}
-		for (j = *nv+1; j > 0; j--) {  /* Basta j>i em vez de j>0 */
+		for (j = *nv+1; j > i; j--) {  /* Basta j>i em vez de j>0 */
 			Yn[i][j] /= t;
 			p = Yn[i][j];
 			if (p != 0)  /* Evita operacoes com zero */
