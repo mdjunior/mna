@@ -329,7 +329,7 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 			nodal_matrix[netlist[i].x][netlist[i].c] = -1;
 			nodal_matrix[netlist[i].x][netlist[i].d] = 1;
 		}
-		else if (tipo=='$') {
+		else if (tipo == '$') {
 			double g = switch_conductance(&netlist[i], solucao_anterior);
 			nodal_matrix[netlist[i].a][netlist[i].a] += g + gmin_value;
 			nodal_matrix[netlist[i].b][netlist[i].b] += g + gmin_value;
