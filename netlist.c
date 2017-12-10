@@ -218,8 +218,7 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 			nodal_matrix[netlist[i].a][netlist[i].b] -= g;
 			nodal_matrix[netlist[i].b][netlist[i].a] -= g;
 		}
-		else if (tipo == 'C')
-		{
+		else if (tipo == 'C') {
 			nodal_matrix[netlist[i].a][netlist[i].x] = 1;
 			nodal_matrix[netlist[i].b][netlist[i].x] = -1;
 			nodal_matrix[netlist[i].x][netlist[i].a] = 1;
@@ -227,23 +226,13 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 			nodal_matrix[netlist[i].x][netlist[i].x] -= capacitor_resistance(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
 			nodal_matrix[netlist[i].x][*nv+1] += capacitor_current(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
 		}
-		else if (tipo=='L')
-		{
-			if (t_atual == 0) {
-				// Na primeira analise, o indutor eh um resistor
-				double g = 1/MIN_R;
-				nodal_matrix[netlist[i].a][netlist[i].a] += g;
-				nodal_matrix[netlist[i].b][netlist[i].b] += g;
-				nodal_matrix[netlist[i].a][netlist[i].b] -= g;
-				nodal_matrix[netlist[i].b][netlist[i].a] -= g;
-			} else {
-				nodal_matrix[netlist[i].a][netlist[i].x] = 1;
-				nodal_matrix[netlist[i].b][netlist[i].x] = -1;
-				nodal_matrix[netlist[i].x][netlist[i].a] = 1;
-				nodal_matrix[netlist[i].x][netlist[i].b] = -1;
-				nodal_matrix[netlist[i].x][netlist[i].x] = -inductor_resistance(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
-				nodal_matrix[netlist[i].x][*nv+1] = -inductor_voltage(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
-			}
+		else if (tipo == 'L') {
+			nodal_matrix[netlist[i].a][netlist[i].x] = 1;
+			nodal_matrix[netlist[i].b][netlist[i].x] = -1;
+			nodal_matrix[netlist[i].x][netlist[i].a] = 1;
+			nodal_matrix[netlist[i].x][netlist[i].b] = -1;
+			nodal_matrix[netlist[i].x][netlist[i].x] = -inductor_resistance(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
+			nodal_matrix[netlist[i].x][*nv+1] = -inductor_voltage(&netlist[i], solucao_anterior, t_passo, t_atual, passos_por_ponto);
 		}
 		else if (tipo == 'G') {
 			double g = netlist[i].valor;
@@ -323,14 +312,22 @@ int build_nodal_system(int ne, int *nv, device netlist[], double solucao_anterio
 		else if (tipo == 'K') {
 			// pag 55 e verificar pag 99
 			double g = netlist[i].valor;
-			nodal_matrix[netlist[i].a][netlist[i].x] -= g;
-			nodal_matrix[netlist[i].b][netlist[i].x] += g;
-			nodal_matrix[netlist[i].c][netlist[i].x] += 1;
-			nodal_matrix[netlist[i].d][netlist[i].x] -= 1;
-			nodal_matrix[netlist[i].x][netlist[i].a] += g;
-			nodal_matrix[netlist[i].x][netlist[i].b] -= g;
-			nodal_matrix[netlist[i].x][netlist[i].c] -= 1;
-			nodal_matrix[netlist[i].x][netlist[i].d] += 1;
+			// nodal_matrix[netlist[i].a][netlist[i].x] -= g;
+			// nodal_matrix[netlist[i].b][netlist[i].x] += g;
+			// nodal_matrix[netlist[i].c][netlist[i].x] += 1;
+			// nodal_matrix[netlist[i].d][netlist[i].x] -= 1;
+			// nodal_matrix[netlist[i].x][netlist[i].a] += g;
+			// nodal_matrix[netlist[i].x][netlist[i].b] -= g;
+			// nodal_matrix[netlist[i].x][netlist[i].c] -= 1;
+			// nodal_matrix[netlist[i].x][netlist[i].d] += 1;
+			nodal_matrix[netlist[i].a][netlist[i].x] = -g;
+			nodal_matrix[netlist[i].b][netlist[i].x] = g;
+			nodal_matrix[netlist[i].c][netlist[i].x] = 1;
+			nodal_matrix[netlist[i].d][netlist[i].x] = -1;
+			nodal_matrix[netlist[i].x][netlist[i].a] = g;
+			nodal_matrix[netlist[i].x][netlist[i].b] = -g;
+			nodal_matrix[netlist[i].x][netlist[i].c] = -1;
+			nodal_matrix[netlist[i].x][netlist[i].d] = 1;
 		}
 		else if (tipo=='$') {
 			double g = switch_conductance(&netlist[i], solucao_anterior);
