@@ -407,9 +407,9 @@ int main(void)
                     double error = fabs( solucao_atual[i][nv+1] - solucao_anterior[cont] );
                     if (error > MAX_ERROR) {
                         if ( config.gmin_enabled ) {
-
 							if (config.PRINT_GMIN_DATA) {
 								printf("Fator: %g, Fator Mínimo: %g\n", config.gmin_factor, config.gmin_factor_min);
+								printf ("Entrou no MAX_ERROR. Tentativas: %i de %i, Aleatorizações: %i de %i\n", tries, MAX_TRIES,randomizations, MAX_RANDOMIZATIONS);
 							}
 
                             if (config.gmin_factor < config.gmin_factor_min) {
@@ -420,13 +420,6 @@ int main(void)
 								config.gmin_value = config.gmin_last_value;
 								config.gmin_factor = sqrt(config.gmin_factor);
 								config.gmin_value = config.gmin_value/config.gmin_factor;
-                            }
-                        } else {
-                            convergence = 1;
-                            tries++;
-							// Atualizando ultima solucao
-                            for (cont=1; cont<=nv; cont++) {
-                                solucao_anterior[i] = solucao_atual[i][nv+1];
                             }
                         }
 			        } else {
@@ -439,9 +432,7 @@ int main(void)
                                 tries = 0;
                                 randomizations = 0;
                             }
-				        } else {
-                            convergence = 0;
-                        }
+				        }
 			        }
 		        }
 
