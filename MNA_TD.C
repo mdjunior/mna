@@ -35,7 +35,7 @@ Os nos podem ser nomes
 
 #define versao "1.1a - 09/12/2017"
 #include <stdio.h> // printf sscanf
-#include <cstdlib>
+#include <stdlib.h>
 #include <string.h> // strcpy strstr strlen
 #include <stdlib.h>
 #include <ctype.h> // toupper 
@@ -104,6 +104,8 @@ int main(void)
 	printf("Programa demonstrativo de analise nodal modificada\n");
 	printf("Originalmente por Antonio Carlos M. de Queiroz - acmq@coe.ufrj.br\n");
 	printf("Adaptado por Manoel Domingues Junior - mdjunior@ufrj.br\n");
+	printf("             João Ricardo da Silva Feitosa - diego.neves@poli.ufrj.br\n");
+	printf("             Diego Neves Marinho - \n");
 	printf("Versao %s\n", versao);
 
 	/* Leitura do netlist */
