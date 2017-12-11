@@ -105,7 +105,7 @@ int main(void)
 	printf("Originalmente por Antonio Carlos M. de Queiroz - acmq@coe.ufrj.br\n");
 	printf("Adaptado por Manoel Domingues Junior - mdjunior@ufrj.br\n");
 	printf("             João Ricardo da Silva Feitosa - diego.neves@poli.ufrj.br\n");
-	printf("             Diego Neves Marinho - \n");
+	printf("             Diego Neves Marinho - diego.neves@poli.ufrj.br\n");
 	printf("Versao %s\n", versao);
 
 	/* Leitura do netlist */
